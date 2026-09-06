@@ -650,7 +650,8 @@ def test_command_state_boundary_strict_self_no_libpython(
         pytest.fail("current pcc1 is required for the GUI command boundary gate")
     source = tmp_path / "command_state_pcc1.py"
     source.write_text(
-        '''from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
+        '''import pcc_gui
+from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
 from pcc.unsafe import function_addr, load_i32, load_i64, load_ptr, null, ptr_is_null, stack_alloc, store_i32, store_i64, store_ptr
 
 commands_init = extern("pcc_gui_commands_init", (c_int64,c_int64,c_int64,c_int64), c_int32)

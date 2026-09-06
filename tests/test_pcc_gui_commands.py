@@ -8,18 +8,22 @@ import os
 import subprocess
 from pathlib import Path
 
+from gui_compiler import CORE_ROOT, compiler_path
+
 
 REPO = Path(__file__).resolve().parents[1]
-COMMANDS = REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_commands.py"
-BINDING = REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_binding.py"
-COMPONENTS = REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_components.py"
-CONTRACT = REPO / "pcc" / "py_runtime" / "gui_declarative_contract_v1.json"
+COMMANDS = REPO / "pcc_gui" / "pcc_gui_commands.py"
+BINDING = REPO / "pcc_gui" / "pcc_gui_binding.py"
+COMPONENTS = REPO / "pcc_gui" / "pcc_gui_components.py"
+CONTRACT = REPO / "pcc_gui" / "gui_declarative_contract_v1.json"
 
 
 def test_gui_runtime_unsafe_static_intrinsics_use_literal_operands() -> None:
-    runtime_dir = REPO / "pcc" / "py_runtime" / "py"
+    runtime_dir = REPO / "pcc_gui"
     offenders = []
-    for path in sorted(runtime_dir.glob("pcc_gui*.py")):
+    sources = sorted(runtime_dir.glob("pcc_gui*.py"))
+    assert sources, runtime_dir
+    for path in sources:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
@@ -51,15 +55,13 @@ def _compile_run(
 ) -> str:
     src = tmp_path / f"{name}.py"
     exe = tmp_path / name
-    src.write_text(source, encoding="utf-8")
+    src.write_text("import pcc_gui\n" + source, encoding="utf-8")
     env = dict(os.environ)
     env.pop("LC_ALL", None)
     env["PCC_RUNTIME_ARCHIVE"] = str(pcc_py_runtime_archive)
     built = subprocess.run(
         [
-            "uv",
-            "run",
-            "pcc",
+            str(compiler_path()),
             "--backend",
             "self",
             "--python-libpython=off",
@@ -86,21 +88,18 @@ def test_command_owner_freezes_one_table_and_callback_abi() -> None:
     commands = COMMANDS.read_text(encoding="utf-8")
     binding = BINDING.read_text(encoding="utf-8")
     components = COMPONENTS.read_text(encoding="utf-8")
-    makefile = (REPO / "pcc" / "py_runtime" / "Makefile").read_text(
+    package = (REPO / "pcc_gui" / "__init__.py").read_text(encoding="utf-8")
+    unsafe = (CORE_ROOT / "pcc" / "unsafe" / "__init__.py").read_text(
         encoding="utf-8"
     )
-    unsafe = (REPO / "pcc" / "unsafe" / "__init__.py").read_text(
-        encoding="utf-8"
-    )
-    infer = (REPO / "pcc" / "py_frontend" / "type_infer.py").read_text(
+    infer = (CORE_ROOT / "pcc" / "py_frontend" / "type_infer.py").read_text(
         encoding="utf-8"
     )
     lowering = (
-        REPO / "pcc" / "py_frontend" / "codegen" / "unsafe_lowering.py"
+        CORE_ROOT / "pcc" / "py_frontend" / "codegen" / "unsafe_lowering.py"
     ).read_text(encoding="utf-8")
-    modules = makefile.split("FREESTANDING_PY_MODULES =", 1)[1].splitlines()[0]
-    assert modules.split().count("pcc_gui_commands") == 1
-    assert modules.split().count("pcc_gui_binding") == 1
+    assert package.count("from . import pcc_gui_commands") == 1
+    assert package.count("from . import pcc_gui_binding") == 1
     assert "define_global" not in binding
     assert "pcc_gui_managed_state_set" in binding
     assert "pcc_gui_commands_register_legacy" in binding
