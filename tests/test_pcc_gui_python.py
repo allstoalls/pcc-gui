@@ -33,7 +33,7 @@ def _compile_run(tmp_path: Path, name: str, source: str) -> int:
 
 
 _STACK = """
-from pcc.extern import c_int64, c_ptr, c_void, c_int32, extern
+from pcc.extern import c_int64, c_ptr, c_void, c_int32, extern, c_rawptr
 from pcc.unsafe import cstr, load_i64, null, stack_alloc, store_i64
 
 pcc_gui_stack_measure = extern("pcc_gui_stack_measure", (c_ptr, c_ptr, c_int64, c_int32, c_int32), c_void)
@@ -85,7 +85,7 @@ pcc_gui_element_type = extern("pcc_gui_element_type", (c_ptr,), c_int32)
 pcc_gui_element_set_color = extern("pcc_gui_element_set_color", (c_ptr, c_int32, c_int32, c_int32, c_int32), c_int32)
 pcc_gui_control_init = extern("pcc_gui_control_init", (c_ptr,), c_int32)
 pcc_gui_control_append_child = extern("pcc_gui_control_append_child", (c_ptr, c_ptr), c_int32)
-pcc_gui_control_hit_test = extern("pcc_gui_control_hit_test", (c_ptr, c_int64, c_int64), c_ptr)
+pcc_gui_control_hit_test = extern("pcc_gui_control_hit_test", (c_ptr, c_int64, c_int64), c_rawptr)
 pcc_gui_control_set_focus = extern("pcc_gui_control_set_focus", (c_ptr, c_int32), c_int32)
 pcc_gui_control_focused = extern("pcc_gui_control_focused", (c_ptr,), c_int32)
 
@@ -314,7 +314,7 @@ from pcc.unsafe import cstr, load_i64, stack_alloc, store_i32, store_i64
 
 pcc_gui_control_init = extern("pcc_gui_control_init", (c_ptr,), c_int32)
 pcc_gui_control_append_child = extern("pcc_gui_control_append_child", (c_ptr, c_ptr), c_int32)
-pcc_gui_control_hit_test = extern("pcc_gui_control_hit_test", (c_ptr, c_int64, c_int64), c_ptr)
+pcc_gui_control_hit_test = extern("pcc_gui_control_hit_test", (c_ptr, c_int64, c_int64), c_rawptr)
 pcc_gui_control_route_event = extern("pcc_gui_control_route_event", (c_ptr, c_int32, c_int64, c_int64), c_int32)
 
 

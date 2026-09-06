@@ -1,6 +1,8 @@
 """Declarative PCC native GUI shell for the Python Harness port."""
 
+import pcc_gui  # noqa: F401  pcc1 compiles the framework into this program's closure
 from pcc.extern import (
+    c_rawptr,
     c_abi_typed_export,
     c_int32,
     c_int64,
@@ -27,7 +29,7 @@ import gui_bridge as native
 from gui_model import HarnessGuiState
 
 
-getenv = extern("getenv", (c_ptr,), c_ptr)
+getenv = extern("getenv", (c_ptr,), c_rawptr)
 fflush = extern("fflush", (c_ptr,), c_int32)
 
 kit_init = extern("pcc_kit_init", (c_int64,), c_int32)

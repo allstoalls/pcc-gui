@@ -2,11 +2,9 @@
 set -eu
 
 PROJECT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+GUI_ROOT=$(CDPATH= cd -- "$PROJECT_DIR/../.." && pwd)
+export PCC_PACKAGE_SITE="$GUI_ROOT${PCC_PACKAGE_SITE:+:$PCC_PACKAGE_SITE}"
 REPO_ROOT=${PCC_CORE:-$(CDPATH= cd -- "$PROJECT_DIR/../../../pcc" 2>/dev/null && pwd)}
-if [ -z "${REPO_ROOT:-}" ] || [ ! -d "$REPO_ROOT/pcc" ]; then
-    echo "set PCC_CORE=/path/to/allstoalls-pcc checkout" >&2
-    exit 1
-fi
 OUTPUT_DIR=$PROJECT_DIR/build
 OUTPUT=$OUTPUT_DIR/harness-core
 BRIDGE_SOURCE=$OUTPUT_DIR/pcc_gui_metal_render_bridge.m

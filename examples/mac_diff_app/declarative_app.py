@@ -5,7 +5,7 @@ AppKit/Metal entrypoint.  UI updates are committed through the component and
 scheduler owners; the app never edits committed row nodes in a frame loop.
 """
 
-from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, c_void, extern
+from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, c_void, extern, c_obj
 from pcc.unsafe import (
     calloc,
     cstr,
@@ -37,7 +37,7 @@ open_fn = extern("open", (c_ptr, c_int32), c_int64)
 read_fn = extern("read", (c_int64, c_ptr, c_int64), c_int64)
 close_fn = extern("close", (c_int64,), c_int64)
 program_argc = extern("py_program_argc", (), c_int32)
-program_argv = extern("py_program_argv", (c_int64,), c_ptr)
+program_argv = extern("py_program_argv", (c_int64,), c_obj)
 
 kit_init = extern("pcc_kit_init", (c_int64,), c_int32)
 kit_create = extern("pcc_kit_create", (c_int64,), c_int64)
@@ -126,14 +126,6 @@ define_global_i64("mac_diff_effect_calls", 0)
 define_global_i64("mac_diff_exit_requests", 0)
 define_global_i64("mac_diff_exit_ok", 0)
 define_global_i64("mac_diff_work_drains", 0)
-
-
-def _g(name: str) -> int:
-    return load_i64(global_addr(name), 0)
-
-
-def _setg(name: str, value: int) -> None:
-    store_i64(global_addr(name), 0, value)
 
 
 def _raw_len(value) -> int:
@@ -336,7 +328,7 @@ def mac_diff_toolbar_render(context) -> int:
 def _pane_render(context, side: int) -> int:
     component = load_i64(context, 8)
     arena = load_ptr(context, 48)
-    count = _g("mac_diff_n")
+    count = load_i64(global_addr("mac_diff_n"), 0)
     if count > 13:
         count = 13
     if load_i32(context, 56) < count:
@@ -374,7 +366,7 @@ def mac_diff_overview_render(context) -> int:
     component = load_i64(context, 8)
     arena = load_ptr(context, 48)
     limit = load_i32(context, 56)
-    total = _g("mac_diff_n")
+    total = load_i64(global_addr("mac_diff_n"), 0)
     count = 0
     i = 0
     while i < total and count < limit:
@@ -401,15 +393,15 @@ def mac_diff_status_render(context) -> int:
 
 @c_abi_typed_export("mac_diff_listener", "i32", ("i64", "i64", "ptr"))
 def mac_diff_listener(listener_id: int, target: int, event) -> int:
-    if listener_id != 101 or target != _g("mac_diff_toolbar"):
+    if listener_id != 101 or target != load_i64(global_addr("mac_diff_toolbar"), 0):
         return -1
-    _setg("mac_diff_listener_calls", _g("mac_diff_listener_calls") + 1)
+    store_i64(global_addr("mac_diff_listener_calls"), 0, load_i64(global_addr("mac_diff_listener_calls"), 0) + 1)
     return enqueue_reduce(target, 0, 0, 1, 1, null())
 
 
 @c_abi_typed_export("mac_diff_effect", "i32", ("i64", "i32", "i64"))
 def mac_diff_effect(component: int, phase: int, payload: int) -> int:
-    _setg("mac_diff_effect_calls", _g("mac_diff_effect_calls") + 1)
+    store_i64(global_addr("mac_diff_effect_calls"), 0, load_i64(global_addr("mac_diff_effect_calls"), 0) + 1)
     return 0
 
 
@@ -434,10 +426,10 @@ def mac_diff_root_release(root: int) -> int:
 
 
 def _run_component(component: int, budget: int) -> int:
-    descriptors = int_to_ptr(_g("mac_diff_descriptors"))
-    effects = int_to_ptr(_g("mac_diff_effects"))
-    effect_count = int_to_ptr(_g("mac_diff_effect_count"))
-    error = int_to_ptr(_g("mac_diff_error"))
+    descriptors = int_to_ptr(load_i64(global_addr("mac_diff_descriptors"), 0))
+    effects = int_to_ptr(load_i64(global_addr("mac_diff_effects"), 0))
+    effect_count = int_to_ptr(load_i64(global_addr("mac_diff_effect_count"), 0))
+    error = int_to_ptr(load_i64(global_addr("mac_diff_error"), 0))
     if budget < 0:
         return run_sync(component, descriptors, 64, effects, 128, effect_count, error)
     return run_budgeted(component, budget, descriptors, 64, effects, 128, effect_count, error)
@@ -445,11 +437,11 @@ def _run_component(component: int, budget: int) -> int:
 
 @c_abi_typed_export("mac_diff_work_drain", "i32", ("ptr",))
 def mac_diff_work_drain(unused) -> int:
-    toolbar = _g("mac_diff_toolbar")
+    toolbar = load_i64(global_addr("mac_diff_toolbar"), 0)
     while scheduler_pending(toolbar) > 0:
         if _run_component(toolbar, 128) != 0:
             return -1
-    _setg("mac_diff_work_drains", _g("mac_diff_work_drains") + 1)
+    store_i64(global_addr("mac_diff_work_drains"), 0, load_i64(global_addr("mac_diff_work_drains"), 0) + 1)
     return 0
 
 
@@ -457,18 +449,18 @@ def mac_diff_work_drain(unused) -> int:
 def mac_diff_app_event(event) -> int:
     kind = load_i32(event, 8)
     if kind == 7:
-        count = _g("mac_diff_exit_requests")
-        _setg("mac_diff_exit_requests", count + 1)
+        count = load_i64(global_addr("mac_diff_exit_requests"), 0)
+        store_i64(global_addr("mac_diff_exit_requests"), 0, count + 1)
         return 1 if count == 0 else 0
     if kind == 8:
         ok = 1
-        if component_valid(_g("mac_diff_toolbar")) != 0:
+        if component_valid(load_i64(global_addr("mac_diff_toolbar"), 0)) != 0:
             ok = 0
-        if listener_count(_g("mac_diff_toolbar")) != 0:
+        if listener_count(load_i64(global_addr("mac_diff_toolbar"), 0)) != 0:
             ok = 0
-        if kit_valid(_g("mac_diff_root")) != 0:
+        if kit_valid(load_i64(global_addr("mac_diff_root"), 0)) != 0:
             ok = 0
-        _setg("mac_diff_exit_ok", ok)
+        store_i64(global_addr("mac_diff_exit_ok"), 0, ok)
     return 0
 
 
@@ -525,7 +517,7 @@ def _load_diff() -> int:
     if count < 0:
         return -1
     count = _repair_ops(count)
-    _setg("mac_diff_n", count)
+    store_i64(global_addr("mac_diff_n"), 0, count)
     equal = 0
     deleted = 0
     inserted = 0
@@ -593,23 +585,23 @@ def run_app(hardware: int) -> int:
     status = _mount_component(-1, status_root, 5)
     if toolbar < 0 or left < 0 or right < 0 or overview < 0 or status < 0:
         return 10
-    _setg("mac_diff_root", root)
-    _setg("mac_diff_toolbar", toolbar)
-    _setg("mac_diff_left", left)
-    _setg("mac_diff_right", right)
-    _setg("mac_diff_overview", overview)
-    _setg("mac_diff_status", status)
+    store_i64(global_addr("mac_diff_root"), 0, root)
+    store_i64(global_addr("mac_diff_toolbar"), 0, toolbar)
+    store_i64(global_addr("mac_diff_left"), 0, left)
+    store_i64(global_addr("mac_diff_right"), 0, right)
+    store_i64(global_addr("mac_diff_overview"), 0, overview)
+    store_i64(global_addr("mac_diff_status"), 0, status)
 
     managed = stack_alloc(48)
-    if managed_state_set(toolbar, 1, 1, _g("mac_diff_n"), 0) != 0:
+    if managed_state_set(toolbar, 1, 1, load_i64(global_addr("mac_diff_n"), 0), 0) != 0:
         return 11
     if managed_binding_add(toolbar, 1, status, 1) != 0:
         return 11
-    if managed_state_set(toolbar, 1, 1, _g("mac_diff_n") + 1, 0) != 0:
+    if managed_state_set(toolbar, 1, 1, load_i64(global_addr("mac_diff_n"), 0) + 1, 0) != 0:
         return 11
     if managed_state_get(status, 1, managed) != 0:
         return 11
-    if load_i32(managed, 0) != 1 or load_i64(managed, 24) != _g("mac_diff_n") + 1:
+    if load_i32(managed, 0) != 1 or load_i64(managed, 24) != load_i64(global_addr("mac_diff_n"), 0) + 1:
         return 11
 
     descriptors = calloc(64, 72)
@@ -618,10 +610,10 @@ def run_app(hardware: int) -> int:
     error = calloc(1, 24)
     if ptr_is_null(descriptors) or ptr_is_null(effects) or ptr_is_null(effect_count) or ptr_is_null(error):
         return 11
-    _setg("mac_diff_descriptors", ptr_to_int(descriptors))
-    _setg("mac_diff_effects", ptr_to_int(effects))
-    _setg("mac_diff_effect_count", ptr_to_int(effect_count))
-    _setg("mac_diff_error", ptr_to_int(error))
+    store_i64(global_addr("mac_diff_descriptors"), 0, ptr_to_int(descriptors))
+    store_i64(global_addr("mac_diff_effects"), 0, ptr_to_int(effects))
+    store_i64(global_addr("mac_diff_effect_count"), 0, ptr_to_int(effect_count))
+    store_i64(global_addr("mac_diff_error"), 0, ptr_to_int(error))
     if register_effect(toolbar, 1, 0, 1, 7) != 0:
         return 12
 
@@ -674,7 +666,7 @@ def run_app(hardware: int) -> int:
     path = stack_alloc(32)
     if dispatch(root, 500, 20, 1, null(), path, 4, error) != 1:
         return 29
-    if _g("mac_diff_listener_calls") != 1 or _run_component(toolbar, -1) != 0 or state_value(toolbar, 0) != 7:
+    if load_i64(global_addr("mac_diff_listener_calls"), 0) != 1 or _run_component(toolbar, -1) != 0 or state_value(toolbar, 0) != 7:
         return 30
 
     if command_register(1, function_addr("mac_diff_command_result"), 2, 1, toolbar, 0) != 0:
@@ -708,9 +700,9 @@ def run_app(hardware: int) -> int:
         return 38
     if app_post(7, 1, null(), 0, 1, 0) != 0 or app_drain(1, error) != 1:
         return 39
-    if app_state() != 7 or terminal_count() != 1 or _g("mac_diff_exit_ok") != 1:
+    if app_state() != 7 or terminal_count() != 1 or load_i64(global_addr("mac_diff_exit_ok"), 0) != 1:
         return 40
-    if _g("mac_diff_work_drains") != 1 or _g("mac_diff_effect_calls") == 0:
+    if load_i64(global_addr("mac_diff_work_drains"), 0) != 1 or load_i64(global_addr("mac_diff_effect_calls"), 0) == 0:
         return 41
     if hardware != 0:
         gui.close()

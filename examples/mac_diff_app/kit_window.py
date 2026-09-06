@@ -8,7 +8,7 @@ and a slow highlight walk.
 Compiled with pcc1 (self backend, no libpython).  Run: cd gui_example2 && ./run.sh
 """
 
-from pcc.extern import c_ptr, c_int64, c_int32, extern
+from pcc.extern import c_ptr, c_int64, c_int32, extern, c_obj
 from pcc.unsafe import (
     call_i64_ptr2, call_i64_ptr3, call_i64_ptr3_i64_i64_i64, calloc, cstr,
     define_global_i64_array,
@@ -24,7 +24,7 @@ import pcc_gui_kit as kit
 from diff_core import pcc_gui_diff_init, pcc_gui_diff_compute
 
 py_program_argc_fn = extern("py_program_argc", (), c_int32)
-py_program_argv_fn = extern("py_program_argv", (c_int64,), c_ptr)
+py_program_argv_fn = extern("py_program_argv", (c_int64,), c_obj)
 open_fn = extern("open", (c_ptr, c_int32), c_int64)
 read_fn = extern("read", (c_int64, c_ptr, c_int64), c_int64)
 close_fn = extern("close", (c_int64,), c_int64)

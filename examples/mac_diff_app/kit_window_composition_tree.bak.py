@@ -8,7 +8,7 @@ proves the composition-tree kernel is the actual rendering driver.
 Run: ./kit_window  (window with dual-pane diff from samples)
 """
 
-from pcc.extern import c_ptr, c_int64, c_int32, extern
+from pcc.extern import c_ptr, c_int64, c_int32, extern, c_obj
 from pcc.unsafe import (
     calloc, cstr, define_global_i64, global_addr, int_to_ptr, load_i32,
     load_i64, load_i8, ptr_add, ptr_to_int, stack_alloc, store_i32,
@@ -132,7 +132,7 @@ def _rect_cmd(idx: int, rects, colors, rn_out, bg: int) -> None:
 
 # ---------- file reading + diff ----------
 py_program_argc_fn = extern("py_program_argc", (), c_int32)
-py_program_argv_fn = extern("py_program_argv", (c_int64,), c_ptr)
+py_program_argv_fn = extern("py_program_argv", (c_int64,), c_obj)
 open_fn = extern("open", (c_ptr, c_int32), c_int64)
 read_fn = extern("read", (c_int64, c_ptr, c_int64), c_int64)
 close_fn = extern("close", (c_int64,), c_int64)
