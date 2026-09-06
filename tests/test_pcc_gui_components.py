@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import ast
 import os
 import subprocess
 from pathlib import Path
 
+from gui_compiler import compiler_path
+
 
 REPO = Path(__file__).resolve().parents[1]
-COMPONENTS = REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_components.py"
+COMPONENTS = REPO / "pcc_gui" / "pcc_gui_components.py"
 KERNEL = REPO / "pcc_gui" / "pcc_gui_kit.py"
 
 
@@ -17,15 +20,13 @@ def _compile_run(
 ) -> str:
     src = tmp_path / f"{name}.py"
     exe = tmp_path / name
-    src.write_text(source, encoding="utf-8")
+    src.write_text("import pcc_gui\n" + source, encoding="utf-8")
     env = dict(os.environ)
     env.pop("LC_ALL", None)
     env["PCC_RUNTIME_ARCHIVE"] = str(pcc_py_runtime_archive)
     built = subprocess.run(
         [
-            "uv",
-            "run",
-            "pcc",
+            str(compiler_path()),
             "--backend",
             "self",
             "--python-libpython=off",
@@ -51,11 +52,16 @@ def _compile_run(
 def test_components_have_one_production_owner_and_atomic_kernel_primitive() -> None:
     source = COMPONENTS.read_text(encoding="utf-8")
     kernel = KERNEL.read_text(encoding="utf-8")
-    makefile = (REPO / "pcc" / "py_runtime" / "Makefile").read_text(
-        encoding="utf-8"
-    )
-    assert "pcc_gui_components" in makefile.split("FREESTANDING_PY_MODULES =", 1)[1]
-    assert '@c_abi_typed_export("pcc_gui_component_render_commit"' in source
+    package = (REPO / "pcc_gui" / "__init__.py").read_text(encoding="utf-8")
+    assert package.count("from . import pcc_gui_components") == 1
+    exports = {
+        decorator.args[0].value
+        for node in ast.parse(source).body if isinstance(node, ast.FunctionDef)
+        for decorator in node.decorator_list
+        if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Name)
+        and decorator.func.id == "c_abi_typed_export"
+    }
+    assert "pcc_gui_component_render_commit" in exports
     assert 'function_addr("pcc_gui_component_node_removed")' in source
     assert "call_i32_ptr1(" in source
     assert "MAX_DESCRIPTORS = 1024" in source
@@ -89,6 +95,10 @@ owner_for_node = extern("pcc_gui_component_owner_for_node", (c_int64,), c_int64)
 unmount = extern("pcc_gui_component_unmount", (c_int64,), c_int32)
 
 define_global_i64("component_render_mode", 0)
+
+# One literal site gives both renders the same borrowed immutable payload.
+def label_address() -> int:
+    return ptr_to_int(cstr("alpha"))
 
 def descriptor(arena, index: int, component: int, key: int, kind: int, flags: int, mask: int, p0: int, p1: int, p2: int, p3: int) -> None:
     slot = ptr_add(arena, index * 72)
@@ -149,12 +159,12 @@ def keyed_render_callback(context) -> int:
         return 1
     if mode == 0:
         descriptor(arena, 0, component, 10, 1, 0xFF112233, 1, 0, 0, 10, 10)
-        descriptor(arena, 1, component, 20, 2, 0, 1, ptr_to_int(cstr("alpha")), 5, 12, 0xFFABCDEF)
+        descriptor(arena, 1, component, 20, 2, 0, 1, label_address(), 5, 12, 0xFFABCDEF)
         store_i32(count_out, 0, 2)
         return 2
     if capacity < 3:
         return -101
-    descriptor(arena, 0, component, 20, 2, 0, 1, ptr_to_int(cstr("alpha")), 5, 12, 0xFFABCDEF)
+    descriptor(arena, 0, component, 20, 2, 0, 1, label_address(), 5, 12, 0xFFABCDEF)
     descriptor(arena, 1, component, 10, 1, 0xFF112233, 1, 0, 0, 20, 10)
     descriptor(arena, 2, component, 30, 1, 0xFF778899, 1, 5, 6, 7, 8)
     store_i32(count_out, 0, 3)
@@ -174,8 +184,8 @@ def main() -> int:
     component = mount(-1, root, 7, stack_alloc(24), 0, stack_alloc(24), 0)
     if component < 0 or valid_component(component) != 1:
         return 4
-    descriptors = stack_alloc(8 * 72)
-    effects = stack_alloc(16 * 48)
+    descriptors = stack_alloc(576)
+    effects = stack_alloc(768)
     effect_count = stack_alloc(4)
     error = stack_alloc(24)
 
@@ -196,6 +206,7 @@ def main() -> int:
     if commit(component, descriptors, 8, effects, 16, effect_count, error) != 0:
         return 10
     if load_i32(effect_count, 0) != 4:
+        print("effect-count", load_i32(effect_count, 0), "kinds", effect_kind(effects, 0), effect_kind(effects, 1), effect_kind(effects, 2), effect_kind(effects, 3), effect_kind(effects, 4))
         return 11
     if effect_kind(effects, 0) != 2 or effect_kind(effects, 1) != 2 or effect_kind(effects, 2) != 3 or effect_kind(effects, 3) != 1:
         return 12
