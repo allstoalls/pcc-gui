@@ -20,7 +20,9 @@ Only ASCII space separates candidates, names are case-sensitive, and an exact
 duplicate candidate is rejected.  A leading negative prefix is governed by
 the registered utility; it is never conflated with the optional slash
 modifier.  The bracket form records arbitrary-modifier provenance while still
-accepting only the same bounded values.
+accepting only the same bounded values. Numeric modifiers scale and floor the
+token value before the negative prefix is applied: 13 at 50% is 6, and its
+negative-prefixed form is -6.
 """
 
 __pcc_runtime_port__ = True
@@ -537,8 +539,6 @@ def _operation_flags_valid(generator, namespace: int, flags: int) -> int:
 
 def _operation_expected_value(namespace: int, token: int, flags: int) -> int:
     value = _theme_active_get(namespace, token)
-    if (flags & OP_NEGATIVE) != 0:
-        value = -value
     if (flags & (OP_MODIFIER_NAMED | OP_MODIFIER_ARBITRARY)) != 0:
         percent = (flags & OP_PERCENT_MASK) >> OP_PERCENT_SHIFT
         if namespace == NAMESPACE_COLOUR:
@@ -548,6 +548,9 @@ def _operation_expected_value(namespace: int, token: int, flags: int) -> int:
             whole = value // 100
             remainder = value - whole * 100
             value = whole * percent + (remainder * percent) // 100
+    # The prefix negates the generated utility, after modifier rounding.
+    if (flags & OP_NEGATIVE) != 0:
+        value = -value
     return value
 
 

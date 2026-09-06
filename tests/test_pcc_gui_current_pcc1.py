@@ -542,7 +542,8 @@ def test_style_candidate_compiler_strict_self_no_libpython(
         pytest.fail("current pcc1 is required for the GUI style compiler gate")
     source = tmp_path / "style_compiler_pcc1.py"
     source.write_text(
-        '''from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
+        '''import pcc_gui
+from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
 from pcc.unsafe import calloc, cstr, function_addr, load_i8, ptr_is_null
 
 kit_init = extern("pcc_kit_init", (c_int64,), c_int32)

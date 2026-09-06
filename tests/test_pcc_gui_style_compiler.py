@@ -6,9 +6,11 @@ import os
 import subprocess
 from pathlib import Path
 
+from gui_compiler import compiler_path
+
 
 REPO = Path(__file__).resolve().parents[1]
-STYLE = REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_style.py"
+STYLE = REPO / "pcc_gui" / "pcc_gui_style.py"
 
 
 def _compile_run(
@@ -16,15 +18,13 @@ def _compile_run(
 ) -> str:
     src = tmp_path / f"{name}.py"
     exe = tmp_path / name
-    src.write_text(source, encoding="utf-8")
+    src.write_text("import pcc_gui\n" + source, encoding="utf-8")
     env = dict(os.environ)
     env.pop("LC_ALL", None)
     env["PCC_RUNTIME_ARCHIVE"] = str(pcc_py_runtime_archive)
     built = subprocess.run(
         [
-            "uv",
-            "run",
-            "pcc",
+            str(compiler_path()),
             "--backend",
             "self",
             "--python-libpython=off",
@@ -144,7 +144,7 @@ def main() -> int:
     ordered = cstr("bg-accent gap-2 x-3")
     if compile_text(ordered) != 3 or parser_calls() != 1 or miss_count() != 1:
         return 13
-    operations = stack_alloc(3 * 40)
+    operations = stack_alloc(120)
     if copy_operations(ordered, raw_len(ordered), operations, 3) != 3:
         return 14
     if load_i32(operations, 0) != 10 or load_i32(operations, 40) != 11 or load_i32(operations, 80) != 12:
