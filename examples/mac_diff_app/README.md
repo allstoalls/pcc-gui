@@ -37,9 +37,9 @@ and compiles it into `libpcc_gui_metal.dylib`.
 ## Build
 
 ```bash
-cd projects/mac_diff_app
-./build.sh        # needs pcc1 (scripts/bootstrap.sh) + uv + clang
-./mac_diff_app    # opens the window
+# from the pcc-gui checkout root, after uv sync --locked
+uv run examples/mac_diff_app/build.sh
+./examples/mac_diff_app/mac_diff_app    # opens the window
 ```
 
 ## Runtime surface

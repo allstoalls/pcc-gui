@@ -1,0 +1,29 @@
+[project]
+name = "pcc-gui"
+version = "0.1.0"
+description = "A declarative native desktop GUI framework for pcc"
+readme = "README.md"
+requires-python = ">=3.15.0rc1,<3.16"
+dependencies = ["python-cc==0.1.7"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pcc_gui"]
+
+[dependency-groups]
+dev = ["pytest==9.0.3", "pytest-xdist>=3.8.0"]
+
+[tool.uv.sources]
+python-cc = { path = "../pcc", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "examples/harness/tests"]
+addopts = "-x -m 'not integration'"
+pythonpath = ["../pcc", "../pcc/tests/python"]
+markers = [
+  "integration: native window or expensive compiler integration test",
+  "pcc_gate: opt-in native compiler capability gate",
+]

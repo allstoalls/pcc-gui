@@ -25,20 +25,33 @@ code. Nothing is prebuilt and nothing is linked from outside the compiler.
 - `tests/` – framework unit tests and pcc1 canaries.
 - `docs/gui-declarative-absorption.md` – design note.
 
-## Requirements
+## Setup
 
-- macOS on Apple silicon (the window bridge uses AppKit/CoreGraphics/Metal).
-- A `pcc1` built from https://github.com/allstoalls/pcc
-  (`scripts/bootstrap.sh --stage 1 --backend self`, or the stage-1 build
-  receipt tools). The framework modules only import `pcc.extern` and
-  `pcc.unsafe`, the compiler's own intrinsic surface.
+Install [uv](https://docs.astral.sh/uv/) and keep the compiler checkout next to
+this one, as in `pcc-gateway`:
+
+```bash
+# from this checkout, if the compiler is not already present
+git clone https://github.com/allstoalls/pcc ../pcc
+```
+
+Run all commands below from the `pcc-gui` checkout root:
+
+```bash
+uv sync --locked
+export PCC_PACKAGE_SITE="$PWD"
+uv run pcc --backend self examples/closure_probe/probe.py -o examples/closure_probe/probe
+./examples/closure_probe/probe
+```
+
+uv installs the pinned development Python and dependencies, including the
+editable `../pcc` compiler. Python is used for development and the `pcc` build
+command; the resulting application is native and does not link libpython.
+Native windows require macOS on Apple silicon and Xcode command line tools.
 
 ## Use it
 
-Tell `pcc1` where the package lives and compile your program. `PCC_PACKAGE_SITE`
-is pcc's package-site list (colon separated); the package can also be copied
-into pcc's default site, `~/.local/share/pcc/environments/<tag>/site-packages`,
-after which no variable is needed.
+Import the framework to include its implementation in your application:
 
 ```python
 # app.py
@@ -56,49 +69,53 @@ print("nodes", _live_nodes())
 ```
 
 ```bash
-PCC_PACKAGE_SITE=/path/to/pcc-gui \
-  pcc1 --backend self --python-libpython off --ir-scaffold on app.py -o app
+uv run pcc --backend self app.py -o app
 ./app
 ```
 
-Verified on 2026-09-06 with a pcc1 built from the core at `2574f585` plus its
-current working tree: `examples/closure_probe/probe.py` prints
-`live nodes 2 root 0 child 1`, and `examples/mac_diff_app/declarative_headless.py`
-compiles and runs, both from directories outside this repository with the core
-runtime archive containing no GUI code.
+The compiler defaults to `--python-libpython off` and `--ir-scaffold on`;
+only the self backend needs to be selected explicitly with the host compiler.
+For a self-hosted compiler build, replace `uv run pcc --backend self` with the path
+to your current `pcc1`. That compiler is built separately in the core checkout.
+
+The `PCC_PACKAGE_SITE` export above makes the framework available even to
+example sources in subdirectories. Set it once per shell; it accepts a
+colon-separated list when adding multiple packages.
 
 ## Examples
 
 ```bash
-# headless diff viewer (no Metal window)
-cd examples/mac_diff_app
-PCC_PACKAGE_SITE=$PWD/../.. pcc1 --backend self --python-libpython off \
-    --ir-scaffold on declarative_headless.py -o declarative_headless
-./declarative_headless samples/left.txt samples/right.txt
+# headless diff viewer
+uv run pcc --backend self examples/mac_diff_app/declarative_headless.py -o examples/mac_diff_app/declarative_headless
+./examples/mac_diff_app/declarative_headless examples/mac_diff_app/samples/left.txt examples/mac_diff_app/samples/right.txt
 
-# windowed diff viewer: Metal render bridge + app
-PCC1=/path/to/pcc1 ./build.sh
-./mac_diff_app samples/left.txt samples/right.txt
-
-# harness application
-PCC1=/path/to/pcc1 ../harness/build.sh
+# windowed diff viewer; generates and builds the Metal bridge too
+uv run examples/mac_diff_app/build.sh
+./examples/mac_diff_app/mac_diff_app examples/mac_diff_app/samples/left.txt examples/mac_diff_app/samples/right.txt
 ```
 
-The Metal render bridge (`pcc_gui_metal_render_bridge.m`) is Objective-C
-generated once from the core's `pcc.kernel_ir.metal_render_surface` and compiled
-with clang; it is the only non-pcc build step and only the windowed example
-needs it.
+Set `PCC1=/absolute/path/to/pcc1` when invoking `build.sh` to use a self-hosted
+compiler. The Metal bridge is generated from the core and compiled with clang.
+See [Harness](examples/harness/README.md) for the agent application's separate
+build and current migration status.
 
 ## Tests
 
-The tests still use the core's pytest fixtures (`pcc_py_runtime_archive`,
-`pcc1_gate`); run them from a core checkout with this repository as the package
-site:
+Tests run directly from this checkout; native tests reuse the adjacent core's
+provenance-checked runtime archive fixture. Hardware integration tests are
+excluded by default and can be selected explicitly with `-m integration`.
 
 ```bash
-cd /path/to/pcc && PCC_PACKAGE_SITE=/path/to/pcc-gui gtimeout 900s env -u LC_ALL \
-    uv run pytest -q -x /path/to/pcc-gui/tests/test_pcc_gui_style.py
+uv run pytest -q
+uv run pytest -q tests/test_pcc_gui_kit.py
+uv run pytest -q examples/harness/tests
+uv run pytest -q -m integration tests/test_pcc_gui_kit_darwin.py
 ```
+
+`tests/test_pcc_gui_current_pcc1.py` checks a current self-hosted compiler;
+`PCC_CURRENT_PCC1=/absolute/path/to/pcc1` selects an explicit build.
+Open migration work and remaining acceptance gates are tracked in
+[GitHub issues](https://github.com/allstoalls/pcc-gui/issues).
 
 ## Provenance
 
