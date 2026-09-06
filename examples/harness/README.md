@@ -17,28 +17,24 @@ input -> durable-style event log -> prompt/tool assembly -> model decision
       -> optional tool call -> assistant response -> transcript projection
 ```
 
-Build and run it from the PCC repository root:
+Build and run it from the pcc-gui repository root:
 
 ```bash
-projects/harness/harness
-projects/harness/harness "hello"                 # explicit CLI turn
-projects/harness/harness "/tool echo native pcc" # explicit CLI tool turn
-projects/harness/harness --self-check
-projects/harness/harness --gui-self-check
+uv run examples/harness/harness
+uv run examples/harness/harness "hello"                 # explicit CLI turn
+uv run examples/harness/harness "/tool echo native pcc" # explicit CLI tool turn
+uv run examples/harness/harness --self-check
+uv run examples/harness/harness --gui-self-check
 ```
 
-`harness` rebuilds `build/harness-core` with `pcc1` when project sources
-change, then executes that native artifact. Compiler selection prefers an
-explicit `PCC1`, then a project-local `build/pcc1`, then PCC's canonical
-`build/bootstrap-self/pcc1` and shared stage-1 artifact. It never silently
-falls back to the stale repository-root binary. Run `bootstrap-pcc1.sh` to
-refresh the project-local compiler from the current PCC source tree. Stage 1
-is constructed with the faster LLVM backend by default; the resulting `pcc1`
-is backend-agnostic and `build.sh` uses its PCC self backend for Harness. Set
-`PCC_HARNESS_BOOTSTRAP_BACKEND=self` only when validating stage-1 construction
-through the self emitter itself. The project-local compiler is bound to
-`build/pcc1-source.json`; `build.sh` rejects a changed compiler artifact or
-stale PCC source digest instead of silently building with an older `pcc1`.
+`harness` rebuilds `build/harness-core` when the application, framework or
+native bridge source changes, then executes that native artifact. Builds use
+`pcc1` from PATH by default; set `PCC1=/absolute/path/to/pcc1` to select a
+specific compiler. The shared compiler installation is owned by `~/my/pcc`;
+this launcher never selects private bootstrap artifacts or builds a compiler.
+The Metal/AppKit bridge is the framework-owned source under `pcc_gui/native/`.
+The new compiler must support the application's required native facilities;
+a compiler failure is reported directly, without a CPython execution fallback.
 
 With no arguments, `harness` opens the native PCC AppKit/Metal GUI. The first
 shell mirrors the upstream light-theme column geometry and exposes the
@@ -75,7 +71,7 @@ The port preserves the upstream domain split while using PCC-native owners:
 | settings, credentials and identity | validated Python providers over PCC filesystem primitives |
 | profile/bundle composition | Python reactive Fiber/realm/effect runtime, then declarative Loader |
 
-The final `projects/harness/harness` command will open the PCC native GUI. Its
+The final `uv run examples/harness/harness` command will open the PCC native GUI. Its
 layout, visible state, interactions, streaming trajectory, approvals,
 settings, session navigation, and error states must match the upstream Web UI.
 Implementation technology is intentionally different; observable behavior and

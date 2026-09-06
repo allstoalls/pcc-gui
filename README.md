@@ -98,7 +98,8 @@ uv run examples/mac_diff_app/build.sh
 ```
 
 Set `PCC1=/absolute/path/to/pcc1` when invoking `build.sh` to use a self-hosted
-compiler. The Metal bridge is generated from the core and compiled with clang.
+compiler. The Metal bridge is maintained in `pcc_gui/native/` and compiled
+with the Xcode toolchain.
 See [Harness](examples/harness/README.md) for the agent application's separate
 build and current migration status.
 

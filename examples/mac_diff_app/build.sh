@@ -14,9 +14,8 @@ if ! command -v "$PCC1" >/dev/null 2>&1; then
 fi
 
 echo "[1/2] Metal render bridge (Objective-C, compiled by clang)"
-python -c 'from pcc.kernel_ir.metal_render_surface import write_metal_render_bridge; write_metal_render_bridge(".")'
-clang -fobjc-arc -framework Foundation -framework Metal -framework AppKit \
-      -framework QuartzCore -dynamiclib pcc_gui_metal_render_bridge.m \
+xcrun --sdk macosx clang -fobjc-arc -framework Foundation -framework Metal -framework AppKit \
+      -framework QuartzCore -dynamiclib "$GUI_ROOT/pcc_gui/native/pcc_gui_metal_render_bridge.m" \
       -o libpcc_gui_metal.dylib
 
 echo "[2/2] compile the app with $PCC1"

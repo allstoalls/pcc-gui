@@ -20,3 +20,15 @@ def compiler_path() -> Path:
             "PCC1=/absolute/path/to/pcc1. GUI tests never bootstrap the compiler."
         )
     return Path(executable).absolute()
+
+
+METAL_BRIDGE_SOURCE = Path(__file__).resolve().parents[1] / "pcc_gui" / "native" / "pcc_gui_metal_render_bridge.m"
+
+
+def write_metal_render_bridge(out_dir: str | Path) -> Path:
+    """Stage the framework-owned native source for an isolated test build."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    output = out_dir / METAL_BRIDGE_SOURCE.name
+    output.write_bytes(METAL_BRIDGE_SOURCE.read_bytes())
+    return output

@@ -7,9 +7,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+from gui_compiler import compiler_path
+
 import pytest
 
-from pcc.kernel_ir.metal_render_surface import write_metal_render_bridge
+from gui_compiler import write_metal_render_bridge
 
 
 pytestmark = pytest.mark.integration
@@ -24,7 +26,7 @@ def test_native_event_adapter_reachability(
     bridge = tmp_path / "libpcc_gui_metal_lifecycle.dylib"
     built_bridge = subprocess.run(
         [
-            "clang",
+            "xcrun", "--sdk", "macosx", "clang",
             "-fobjc-arc",
             "-framework",
             "Foundation",
@@ -48,7 +50,8 @@ def test_native_event_adapter_reachability(
 
     source = tmp_path / "native_lifecycle.py"
     source.write_text(
-        r'''from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
+        r'''import pcc_gui
+from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
 from pcc.unsafe import call_i64_ptr1, call_i64_ptr2, call_i64_ptr_i64_ptr, call_ptr_i64_i64, cstr, define_global_i64, dynamic_library_open, dynamic_library_symbol, function_addr, global_addr, int_to_ptr, load_i8, load_i32, load_i64, load_ptr, null, ptr_is_null, ptr_to_int, store_i64
 
 app_init = extern("pcc_gui_app_lifecycle_init", (c_int64,c_ptr,c_int64,c_int64,c_ptr,c_ptr), c_int32)
@@ -133,9 +136,7 @@ main()
     env["PCC_RUNTIME_ARCHIVE"] = str(pcc_py_runtime_archive)
     built = subprocess.run(
         [
-            "uv",
-            "run",
-            "pcc",
+            str(compiler_path()),
             "--backend",
             "self",
             "--python-libpython=off",
@@ -156,3 +157,21 @@ main()
     )
     assert ran.returncode == 0, ran.stdout + ran.stderr
     assert "PCC_GUI_NATIVE_LIFECYCLE_OK" in ran.stdout
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(sys.platform != "darwin", reason="requires AppKit and Metal")
+def test_native_window_handle_is_released_once(tmp_path: Path) -> None:
+    """Use a native Objective-C oracle to isolate bridge ownership from PCC."""
+    bridge_source = write_metal_render_bridge(tmp_path)
+    driver = Path(__file__).parent / "fixtures" / "native_window_lifetime.m"
+    exe = tmp_path / "window_lifetime"
+    built = subprocess.run(
+        ["xcrun", "--sdk", "macosx", "clang", "-fobjc-arc", "-framework", "Foundation", "-framework", "AppKit",
+         "-framework", "Metal", "-framework", "QuartzCore", str(bridge_source),
+         str(driver), "-o", str(exe)], capture_output=True, text=True, timeout=120,
+    )
+    assert built.returncode == 0, built.stdout + built.stderr
+    ran = subprocess.run([str(exe)], capture_output=True, text=True, timeout=30)
+    assert ran.returncode == 0, ran.stdout + ran.stderr
+    assert "PCC_WINDOW_CLOSE_OWNERSHIP_OK cycles=3 retained_windows=0" in ran.stdout

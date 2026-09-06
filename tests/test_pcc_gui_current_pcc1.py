@@ -749,7 +749,8 @@ def test_app_run_lifecycle_strict_self_no_libpython(
         pytest.fail("current pcc1 is required for the GUI app lifecycle gate")
     source = tmp_path / "app_lifecycle_pcc1.py"
     source.write_text(
-        '''from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
+        '''import pcc_gui
+from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
 from pcc.unsafe import cstr, define_global_i64, function_addr, global_addr, load_i32, load_i64, null, store_i64
 
 app_init = extern("pcc_gui_app_lifecycle_init", (c_int64,c_ptr,c_int64,c_int64,c_ptr,c_ptr), c_int32)

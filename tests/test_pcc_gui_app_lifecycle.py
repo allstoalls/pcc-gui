@@ -7,11 +7,13 @@ import os
 import subprocess
 from pathlib import Path
 
+from gui_compiler import METAL_BRIDGE_SOURCE, compiler_path
+
 
 REPO = Path(__file__).resolve().parents[1]
-LIFECYCLE = REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_app_lifecycle.py"
-BRIDGE = REPO / "pcc" / "kernel_ir" / "metal_render_surface.py"
-CONTRACT = REPO / "pcc" / "py_runtime" / "gui_declarative_contract_v1.json"
+LIFECYCLE = REPO / "pcc_gui" / "pcc_gui_app_lifecycle.py"
+BRIDGE = METAL_BRIDGE_SOURCE
+CONTRACT = REPO / "pcc_gui" / "gui_declarative_contract_v1.json"
 
 
 def _compile_run(
@@ -19,15 +21,13 @@ def _compile_run(
 ) -> str:
     src = tmp_path / f"{name}.py"
     exe = tmp_path / name
-    src.write_text(source, encoding="utf-8")
+    src.write_text("import pcc_gui\n" + source, encoding="utf-8")
     env = dict(os.environ)
     env.pop("LC_ALL", None)
     env["PCC_RUNTIME_ARCHIVE"] = str(pcc_py_runtime_archive)
     built = subprocess.run(
         [
-            "uv",
-            "run",
-            "pcc",
+            str(compiler_path()),
             "--backend",
             "self",
             "--python-libpython=off",
@@ -53,13 +53,8 @@ def _compile_run(
 def test_app_owner_freezes_selected_events_and_real_native_adapter() -> None:
     lifecycle = LIFECYCLE.read_text(encoding="utf-8")
     bridge = BRIDGE.read_text(encoding="utf-8")
-    makefile = (REPO / "pcc" / "py_runtime" / "Makefile").read_text(
-        encoding="utf-8"
-    )
-    modules = " ".join(
-        line for line in makefile.splitlines() if "FREESTANDING_PY_MODULES" in line
-    )
-    assert modules.split().count("pcc_gui_app_lifecycle") == 1
+    package = (REPO / "pcc_gui" / "__init__.py").read_text(encoding="utf-8")
+    assert package.count("from . import pcc_gui_app_lifecycle") == 1
     assert "APP_EVENT_SIZE = 48" in lifecycle
     assert "MAX_EVENT_PAYLOAD = 256" in lifecycle
     for name in (
@@ -79,11 +74,12 @@ def test_app_owner_freezes_selected_events_and_real_native_adapter() -> None:
     assert "_components_shutdown()" in lifecycle
     assert "_events_shutdown(null())" in lifecycle
     assert "_release_native_window()" in lifecycle
-    assert lifecycle.index("_scheduler_shutdown()") < lifecycle.index(
+    shutdown = lifecycle.split("def _finish_exit(", 1)[1].split("\n\ndef ", 1)[0]
+    assert shutdown.index("_scheduler_shutdown()") < shutdown.index(
         "_commands_shutdown()"
-    ) < lifecycle.index("_components_shutdown()") < lifecycle.index(
+    ) < shutdown.index("_components_shutdown()") < shutdown.index(
         "_events_shutdown(null())"
-    ) < lifecycle.index("_release_native_window()")
+    ) < shutdown.index("_release_native_window()")
     assert "PccGuiLifecycleDelegate" in bridge
     assert "pcc_gui_metal_lifecycle_install" in bridge
     assert "pcc_gui_metal_lifecycle_probe" in bridge

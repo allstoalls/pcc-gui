@@ -11,9 +11,11 @@ import sys
 
 import pytest
 
+from gui_compiler import compiler_path
 
-ROOT = Path(__file__).resolve().parents[2]
-PROJECT = ROOT / "projects" / "harness"
+
+ROOT = Path(__file__).resolve().parents[1]
+PROJECT = ROOT / "examples" / "harness"
 
 
 def _load_model():
@@ -98,11 +100,7 @@ def test_gui_static_text_lengths_match_utf8_payloads() -> None:
 @pytest.mark.integration
 @pytest.mark.skipif(sys.platform != "darwin", reason="requires Mach-O pcc1")
 def test_current_pcc1_native_harness_gui() -> None:
-    pcc1 = PROJECT / "build" / "pcc1"
-    assert pcc1.is_file(), (
-        "project-local current-source pcc1 is missing; "
-        "run projects/harness/bootstrap-pcc1.sh"
-    )
+    pcc1 = compiler_path()
     env = dict(os.environ)
     env["PCC1"] = str(pcc1)
     env.pop("LC_ALL", None)

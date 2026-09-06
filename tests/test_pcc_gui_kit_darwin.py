@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from pcc.kernel_ir.metal_render_surface import write_metal_render_bridge
+from gui_compiler import write_metal_render_bridge
 
 
 from gui_compiler import compiler_path
@@ -27,7 +27,7 @@ def test_module_command_list_reaches_real_bridge(
     bridge = tmp_path / "libpcc_gui_metal.dylib"
     built_bridge = subprocess.run(
         [
-            "clang",
+            "xcrun", "--sdk", "macosx", "clang",
             "-fobjc-arc",
             "-framework",
             "Foundation",
