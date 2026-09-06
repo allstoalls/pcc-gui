@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from pcc1_gate import find_current_pcc1
+from gui_compiler import compiler_path
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -118,7 +118,7 @@ def test_declarative_canary_current_pcc1_gc0_to_gc4(
     pcc_py_runtime_archive: Path,
     gc_backend: str,
 ) -> None:
-    pcc1 = find_current_pcc1(REPO)
+    pcc1 = compiler_path()
     if pcc1 is None:
         pytest.fail("current pcc1 is required for the declarative GUI canary")
     exe = tmp_path / f"mac_diff_declarative_pcc1_gc{gc_backend}"

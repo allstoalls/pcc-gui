@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from pcc1_gate import find_current_pcc1
+from gui_compiler import compiler_path
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -18,7 +18,7 @@ REPO = Path(__file__).resolve().parents[1]
 def test_kernel_strict_self_no_libpython(
     tmp_path: Path, pcc_py_runtime_archive: Path
 ) -> None:
-    pcc1 = find_current_pcc1(REPO)
+    pcc1 = compiler_path()
     if pcc1 is None:
         pytest.fail("current pcc1 is required for the canonical GUI kernel gate")
     shutil.copy(
@@ -90,7 +90,7 @@ main()
 def test_keyed_render_commit_strict_self_no_libpython(
     tmp_path: Path, pcc_py_runtime_archive: Path
 ) -> None:
-    pcc1 = find_current_pcc1(REPO)
+    pcc1 = compiler_path()
     if pcc1 is None:
         pytest.fail("current pcc1 is required for the keyed component commit gate")
     source = tmp_path / "component_commit_pcc1.py"
@@ -197,7 +197,7 @@ main()
 def test_state_lane_scheduler_strict_self_no_libpython(
     tmp_path: Path, pcc_py_runtime_archive: Path
 ) -> None:
-    pcc1 = find_current_pcc1(REPO)
+    pcc1 = compiler_path()
     if pcc1 is None:
         pytest.fail("current pcc1 is required for the GUI scheduler gate")
     source = tmp_path / "state_lane_scheduler_pcc1.py"
@@ -300,7 +300,7 @@ main()
 def test_event_lifecycle_strict_self_no_libpython(
     tmp_path: Path, pcc_py_runtime_archive: Path
 ) -> None:
-    pcc1 = find_current_pcc1(REPO)
+    pcc1 = compiler_path()
     if pcc1 is None:
         pytest.fail("current pcc1 is required for the GUI event lifecycle gate")
     source = tmp_path / "event_lifecycle_pcc1.py"
@@ -435,7 +435,7 @@ main()
 def test_style_token_utilities_strict_self_no_libpython(
     tmp_path: Path, pcc_py_runtime_archive: Path
 ) -> None:
-    pcc1 = find_current_pcc1(REPO)
+    pcc1 = compiler_path()
     if pcc1 is None:
         pytest.fail("current pcc1 is required for the GUI style token gate")
     source = tmp_path / "style_tokens_pcc1.py"
@@ -531,7 +531,7 @@ main()
 def test_style_candidate_compiler_strict_self_no_libpython(
     tmp_path: Path, pcc_py_runtime_archive: Path
 ) -> None:
-    pcc1 = find_current_pcc1(REPO)
+    pcc1 = compiler_path()
     if pcc1 is None:
         pytest.fail("current pcc1 is required for the GUI style compiler gate")
     source = tmp_path / "style_compiler_pcc1.py"
@@ -638,7 +638,7 @@ main()
 def test_command_state_boundary_strict_self_no_libpython(
     tmp_path: Path, pcc_py_runtime_archive: Path
 ) -> None:
-    pcc1 = find_current_pcc1(REPO)
+    pcc1 = compiler_path()
     if pcc1 is None:
         pytest.fail("current pcc1 is required for the GUI command boundary gate")
     source = tmp_path / "command_state_pcc1.py"
@@ -736,7 +736,7 @@ main()
 def test_app_run_lifecycle_strict_self_no_libpython(
     tmp_path: Path, pcc_py_runtime_archive: Path
 ) -> None:
-    pcc1 = find_current_pcc1(REPO)
+    pcc1 = compiler_path()
     if pcc1 is None:
         pytest.fail("current pcc1 is required for the GUI app lifecycle gate")
     source = tmp_path / "app_lifecycle_pcc1.py"

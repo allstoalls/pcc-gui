@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build mac_diff_app with the uv compiler or an explicit PCC1 executable.
+# Build mac_diff_app with pcc1 from PATH or an explicit PCC1 executable.
 # Self backend, no libpython.  The pcc_gui framework is compiled into the app
 # through `import pcc_gui`; PCC_PACKAGE_SITE tells pcc1 where the package lives.
 set -e
@@ -7,9 +7,9 @@ cd "$(dirname "$0")"
 APP_DIR="$(pwd)"
 GUI_ROOT="$(cd ../.. && pwd)"
 
-PCC1="${PCC1:-pcc}"
+PCC1="${PCC1:-pcc1}"
 if ! command -v "$PCC1" >/dev/null 2>&1; then
-  echo "compiler not found: $PCC1; run uv run examples/mac_diff_app/build.sh or set PCC1" >&2
+  echo "compiler not found: $PCC1; install ~/.local/bin/pcc1, add it to PATH, or set PCC1" >&2
   exit 1
 fi
 

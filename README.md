@@ -39,14 +39,17 @@ Run all commands below from the `pcc-gui` checkout root:
 
 ```bash
 uv sync --locked
+command -v pcc1  # normally ~/.local/bin/pcc1, installed by the core checkout
 export PCC_PACKAGE_SITE="$PWD"
-uv run pcc --backend self examples/closure_probe/probe.py -o examples/closure_probe/probe
+pcc1 examples/closure_probe/probe.py -o examples/closure_probe/probe
 ./examples/closure_probe/probe
 ```
 
 uv installs the pinned development Python and dependencies, including the
-editable `../pcc` compiler. Python is used for development and the `pcc` build
-command; the resulting application is native and does not link libpython.
+editable `../pcc` development tools. The native compiler has a separate stable
+installation at `~/.local/bin/pcc1`; keep `~/.local/bin` on PATH. `uv sync` does
+not build or install that executable. Applications compile through `pcc1` and
+do not link libpython.
 Native windows require macOS on Apple silicon and Xcode command line tools.
 
 ## Use it
@@ -69,14 +72,14 @@ print("nodes", _live_nodes())
 ```
 
 ```bash
-uv run pcc --backend self app.py -o app
+pcc1 app.py -o app
 ./app
 ```
 
-The compiler defaults to `--python-libpython off` and `--ir-scaffold on`;
-only the self backend needs to be selected explicitly with the host compiler.
-For a self-hosted compiler build, replace `uv run pcc --backend self` with the path
-to your current `pcc1`. That compiler is built separately in the core checkout.
+`pcc1` defaults to the self backend, libpython off and IR lowering on, so
+ordinary commands do not repeat those options. Builds resolve `pcc1` through
+PATH; set `PCC1=/absolute/path/to/pcc1` for an explicit build-script/test override.
+This repository does not bootstrap a compiler or search core build directories.
 
 The `PCC_PACKAGE_SITE` export above makes the framework available even to
 example sources in subdirectories. Set it once per shell; it accepts a
@@ -86,7 +89,7 @@ colon-separated list when adding multiple packages.
 
 ```bash
 # headless diff viewer
-uv run pcc --backend self examples/mac_diff_app/declarative_headless.py -o examples/mac_diff_app/declarative_headless
+pcc1 examples/mac_diff_app/declarative_headless.py -o examples/mac_diff_app/declarative_headless
 ./examples/mac_diff_app/declarative_headless examples/mac_diff_app/samples/left.txt examples/mac_diff_app/samples/right.txt
 
 # windowed diff viewer; generates and builds the Metal bridge too
@@ -112,8 +115,9 @@ uv run pytest -q examples/harness/tests
 uv run pytest -q -m integration tests/test_pcc_gui_kit_darwin.py
 ```
 
-`tests/test_pcc_gui_current_pcc1.py` checks a current self-hosted compiler;
-`PCC_CURRENT_PCC1=/absolute/path/to/pcc1` selects an explicit build.
+`tests/test_pcc_gui_current_pcc1.py` checks the installed self-hosted compiler.
+A missing compiler produces an installation error; it never starts a core build.
+The older `PCC_CURRENT_PCC1` test override is also accepted.
 Open migration work and remaining acceptance gates are tracked in
 [GitHub issues](https://github.com/allstoalls/pcc-gui/issues).
 
