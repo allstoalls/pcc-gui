@@ -445,7 +445,8 @@ def test_style_token_utilities_strict_self_no_libpython(
         pytest.fail("current pcc1 is required for the GUI style token gate")
     source = tmp_path / "style_tokens_pcc1.py"
     source.write_text(
-        '''from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
+        '''import pcc_gui
+from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
 from pcc.unsafe import calloc, function_addr, ptr_is_null, stack_alloc
 
 kit_init = extern("pcc_kit_init", (c_int64,), c_int32)

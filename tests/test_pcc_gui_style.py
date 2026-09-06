@@ -6,11 +6,13 @@ import os
 import subprocess
 from pathlib import Path
 
+from gui_compiler import compiler_path
+
 
 REPO = Path(__file__).resolve().parents[1]
-STYLE = REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_style.py"
-THEME = REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_theme_anim.py"
-EVENTS = REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_events.py"
+STYLE = REPO / "pcc_gui" / "pcc_gui_style.py"
+THEME = REPO / "pcc_gui" / "pcc_gui_theme_anim.py"
+EVENTS = REPO / "pcc_gui" / "pcc_gui_events.py"
 
 
 def _compile_run(
@@ -18,15 +20,13 @@ def _compile_run(
 ) -> str:
     src = tmp_path / f"{name}.py"
     exe = tmp_path / name
-    src.write_text(source, encoding="utf-8")
+    src.write_text("import pcc_gui\n" + source, encoding="utf-8")
     env = dict(os.environ)
     env.pop("LC_ALL", None)
     env["PCC_RUNTIME_ARCHIVE"] = str(pcc_py_runtime_archive)
     built = subprocess.run(
         [
-            "uv",
-            "run",
-            "pcc",
+            str(compiler_path()),
             "--backend",
             "self",
             "--python-libpython=off",
@@ -54,13 +54,10 @@ def test_style_owner_freezes_namespaces_operations_and_unmount_hook() -> None:
     theme = THEME.read_text(encoding="utf-8")
     events = EVENTS.read_text(encoding="utf-8")
     components = (
-        REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_components.py"
+        REPO / "pcc_gui" / "pcc_gui_components.py"
     ).read_text(encoding="utf-8")
-    makefile = (REPO / "pcc" / "py_runtime" / "Makefile").read_text(
-        encoding="utf-8"
-    )
-    modules = makefile.split("FREESTANDING_PY_MODULES =", 1)[1].splitlines()[0]
-    assert modules.split().count("pcc_gui_style") == 1
+    package = (REPO / "pcc_gui" / "__init__.py").read_text(encoding="utf-8")
+    assert package.count("from . import pcc_gui_style") == 1
     assert "STYLE_OPERATION_SIZE = 40" in style
     assert "NAMESPACE_COLOUR = 0" in style
     assert "NAMESPACE_FONT = 1" in style
@@ -265,6 +262,14 @@ def main() -> int:
         return 51
     if style_get(root_a, 6) != 8 or style_get(root_a, 7) != 6:
         return 52
+    # The negative margin still depends on spacing token 2. A commit must
+    # stay dirty until that operation is regenerated for the new theme too.
+    if did_commit(component_a) != -106 or dirty(component_a) != 1:
+        return 57
+    if generate(4, 2, 1, negative_operation) != 0 or apply(component_a, root_a, negative_operation) != 0:
+        return 58
+    if style_get(root_a, 8) != -10:
+        return 59
     if did_commit(component_a) != 0 or dirty(component_a) != 0:
         return 53
     if unmount(component_b) != 0 or next_dirty() == component_b:

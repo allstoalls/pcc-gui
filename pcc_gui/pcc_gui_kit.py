@@ -557,7 +557,8 @@ def pcc_kit_style_get(node_id: int, field: int) -> int:
     if _valid(node_id) == 0:
         return 0
     if field == 1 or field == 2:
-        return _n4(node_id, 92)
+        # Packed ARGB is unsigned even though the node stores a 32-bit word.
+        return _n4(node_id, 92) & 0xFFFFFFFF
     if field == 3:
         return _n8(node_id, 112)
     if field == 4:
