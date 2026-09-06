@@ -307,11 +307,13 @@ def test_event_lifecycle_strict_self_no_libpython(
         pytest.fail("current pcc1 is required for the GUI event lifecycle gate")
     source = tmp_path / "event_lifecycle_pcc1.py"
     source.write_text(
-        '''from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
+        '''import pcc_gui
+from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, c_void, extern
 from pcc.unsafe import define_global_i64, function_addr, global_addr, int_to_ptr, load_i32, load_i64, load_ptr, stack_alloc, store_i32, store_i64
 
 kit_init = extern("pcc_kit_init", (c_int64,), c_int32)
 kit_create = extern("pcc_kit_create", (c_int64,), c_int64)
+kit_rect = extern("pcc_kit_rect", (c_int64,c_int64,c_int64,c_int64,c_int64,c_int32), c_void)
 components_init = extern("pcc_gui_components_init", (c_int64,c_int64,c_int64), c_int32)
 register_render = extern("pcc_gui_component_register_render", (c_int32,c_ptr), c_int32)
 mount = extern("pcc_gui_component_mount", (c_int64,c_int64,c_int32,c_ptr,c_int32,c_ptr,c_int32), c_int64)
@@ -372,6 +374,7 @@ def main() -> int:
     if register_listener_callback(2, function_addr("pcc1_event_listener")) != 0 or register_effect_callback(3, function_addr("pcc1_event_effect")) != 0:
         return 4
     root = kit_create(-1)
+    kit_rect(root, 0, 0, 100, 100, 0xFF000000)
     state = stack_alloc(24)
     store_i32(state, 0, 1)
     store_i64(state, 8, 0)
@@ -381,7 +384,7 @@ def main() -> int:
     if component < 0 or listen(11, component, 1, 2, 0, 0) != 0:
         return 5
     descriptors = stack_alloc(72)
-    effects = stack_alloc(4 * 48)
+    effects = stack_alloc(192)
     count = stack_alloc(4)
     error = stack_alloc(24)
     if commit(component, descriptors, 1, effects, 4, count, error) != 0:

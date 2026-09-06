@@ -6,10 +6,12 @@ import os
 import subprocess
 from pathlib import Path
 
+from gui_compiler import CORE_ROOT, compiler_path
+
 
 REPO = Path(__file__).resolve().parents[1]
-EVENTS = REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_events.py"
-COMPONENTS = REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_components.py"
+EVENTS = REPO / "pcc_gui" / "pcc_gui_events.py"
+COMPONENTS = REPO / "pcc_gui" / "pcc_gui_components.py"
 
 
 def _compile_run(
@@ -17,15 +19,13 @@ def _compile_run(
 ) -> str:
     src = tmp_path / f"{name}.py"
     exe = tmp_path / name
-    src.write_text(source, encoding="utf-8")
+    src.write_text("import pcc_gui\n" + source, encoding="utf-8")
     env = dict(os.environ)
     env.pop("LC_ALL", None)
     env["PCC_RUNTIME_ARCHIVE"] = str(pcc_py_runtime_archive)
     built = subprocess.run(
         [
-            "uv",
-            "run",
-            "pcc",
+            str(compiler_path()),
             "--backend",
             "self",
             "--python-libpython=off",
@@ -51,17 +51,14 @@ def _compile_run(
 def test_event_owner_freezes_callback_abis_and_component_hooks() -> None:
     source = EVENTS.read_text(encoding="utf-8")
     components = COMPONENTS.read_text(encoding="utf-8")
-    makefile = (REPO / "pcc" / "py_runtime" / "Makefile").read_text(
-        encoding="utf-8"
-    )
-    unsafe = (REPO / "pcc" / "unsafe" / "__init__.py").read_text(
+    package = (REPO / "pcc_gui" / "__init__.py").read_text(encoding="utf-8")
+    unsafe = (CORE_ROOT / "pcc" / "unsafe" / "__init__.py").read_text(
         encoding="utf-8"
     )
     lowering = (
-        REPO / "pcc" / "py_frontend" / "codegen" / "unsafe_lowering.py"
+        CORE_ROOT / "pcc" / "py_frontend" / "codegen" / "unsafe_lowering.py"
     ).read_text(encoding="utf-8")
-    modules = makefile.split("FREESTANDING_PY_MODULES =", 1)[1].splitlines()[0]
-    assert modules.split().count("pcc_gui_events") == 1
+    assert package.count("from . import pcc_gui_events") == 1
     assert "LISTENER_SIZE = 40" in source
     assert "EFFECT_SIZE = 48" in source
     assert "PASSIVE_SIZE = 40" in source
@@ -84,6 +81,7 @@ from pcc.unsafe import calloc, define_global_i64, function_addr, global_addr, in
 
 kit_init = extern("pcc_kit_init", (c_int64,), c_int32)
 kit_create = extern("pcc_kit_create", (c_int64,), c_int64)
+kit_rect = extern("pcc_kit_rect", (c_int64,c_int64,c_int64,c_int64,c_int64,c_int32), c_void)
 kit_valid = extern("pcc_kit_is_valid", (c_int64,), c_int32)
 kit_focus = extern("pcc_kit_focus", (c_int64,), c_void)
 kit_focused = extern("pcc_kit_focused", (c_int64,), c_int32)
@@ -201,8 +199,8 @@ def trace_is(count: int, a: int, b: int, c: int, d: int, e: int, f: int) -> int:
     return 1
 
 def run_component(component: int) -> int:
-    descriptors = stack_alloc(4 * 72)
-    effects = stack_alloc(8 * 48)
+    descriptors = stack_alloc(288)
+    effects = stack_alloc(384)
     effect_count = stack_alloc(4)
     error = stack_alloc(24)
     return run_sync(component, descriptors, 4, effects, 8, effect_count, error)
@@ -226,14 +224,15 @@ def main() -> int:
         return 7
 
     root = kit_create(-1)
+    kit_rect(root, 0, 0, 100, 100, 0xFF000000)
     parent = mount(-1, root, 1, int_to_ptr(0), 0, int_to_ptr(0), 0)
     if parent < 0:
         return 8
     store_i64(global_addr("event_parent"), 0, parent)
     if listen(102, parent, 1, 7, 0, 11) != 0 or listen(102, parent, 1, 7, 0, 11) != -102:
         return 9
-    descriptors = stack_alloc(4 * 72)
-    effects = stack_alloc(8 * 48)
+    descriptors = stack_alloc(288)
+    effects = stack_alloc(384)
     effect_count = stack_alloc(4)
     error = stack_alloc(24)
     if commit(parent, descriptors, 4, effects, 8, effect_count, error) != 0:
