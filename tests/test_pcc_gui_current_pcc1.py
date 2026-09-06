@@ -203,7 +203,8 @@ def test_state_lane_scheduler_strict_self_no_libpython(
         pytest.fail("current pcc1 is required for the GUI scheduler gate")
     source = tmp_path / "state_lane_scheduler_pcc1.py"
     source.write_text(
-        '''from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
+        '''import pcc_gui
+from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, extern
 from pcc.unsafe import function_addr, int_to_ptr, load_i64, load_ptr, stack_alloc, store_i32, store_i64
 
 kit_init = extern("pcc_kit_init", (c_int64,), c_int32)

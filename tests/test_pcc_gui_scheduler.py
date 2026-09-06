@@ -6,9 +6,11 @@ import os
 import subprocess
 from pathlib import Path
 
+from gui_compiler import CORE_ROOT, compiler_path
+
 
 REPO = Path(__file__).resolve().parents[1]
-SCHEDULER = REPO / "pcc" / "py_runtime" / "py" / "pcc_gui_scheduler.py"
+SCHEDULER = REPO / "pcc_gui" / "pcc_gui_scheduler.py"
 
 
 def _compile_run(
@@ -16,15 +18,13 @@ def _compile_run(
 ) -> str:
     src = tmp_path / f"{name}.py"
     exe = tmp_path / name
-    src.write_text(source, encoding="utf-8")
+    src.write_text("import pcc_gui\n" + source, encoding="utf-8")
     env = dict(os.environ)
     env.pop("LC_ALL", None)
     env["PCC_RUNTIME_ARCHIVE"] = str(pcc_py_runtime_archive)
     built = subprocess.run(
         [
-            "uv",
-            "run",
-            "pcc",
+            str(compiler_path()),
             "--backend",
             "self",
             "--python-libpython=off",
@@ -47,18 +47,16 @@ def _compile_run(
     return ran.stdout
 
 
-def test_scheduler_has_one_archive_owner_and_verified_reducer_abi() -> None:
+def test_scheduler_has_one_package_owner_and_verified_reducer_abi() -> None:
     source = SCHEDULER.read_text(encoding="utf-8")
-    makefile = (REPO / "pcc" / "py_runtime" / "Makefile").read_text(
-        encoding="utf-8"
-    )
-    unsafe = (REPO / "pcc" / "unsafe" / "__init__.py").read_text(
+    package = (REPO / "pcc_gui" / "__init__.py").read_text(encoding="utf-8")
+    unsafe = (CORE_ROOT / "pcc" / "unsafe" / "__init__.py").read_text(
         encoding="utf-8"
     )
     lowering = (
-        REPO / "pcc" / "py_frontend" / "codegen" / "unsafe_lowering.py"
+        CORE_ROOT / "pcc" / "py_frontend" / "codegen" / "unsafe_lowering.py"
     ).read_text(encoding="utf-8")
-    assert "pcc_gui_scheduler" in makefile.split("FREESTANDING_PY_MODULES =", 1)[1]
+    assert package.count("from . import pcc_gui_scheduler") == 1
     assert "UPDATE_SIZE = 64" in source
     assert "load_i64(_update_at(i), 0) == 0" in source
     assert "WORK_EVALUATING = 4" in source

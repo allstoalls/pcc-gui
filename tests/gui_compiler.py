@@ -4,6 +4,11 @@ import os
 from pathlib import Path
 import shutil
 
+import pcc
+
+
+CORE_ROOT = Path(pcc.__file__).resolve().parents[1]
+
 
 def compiler_path() -> Path:
     requested = os.environ.get("PCC1") or os.environ.get("PCC_CURRENT_PCC1") or "pcc1"
