@@ -1,92 +1,93 @@
-docs/design/gui-declarative-absorption.md
-examples/harness/AGENTS.md
-examples/harness/ARCHITECTURE.md
-examples/harness/README.md
-examples/harness/TASKS.md
-examples/harness/agent_runtime.py
-examples/harness/app.py
-examples/harness/bootstrap-pcc1.sh
-examples/harness/build.sh
-examples/harness/credentials_runtime.py
-examples/harness/gui/upstream-baseline.json
-examples/harness/gui_app.py
-examples/harness/gui_bridge.py
-examples/harness/gui_model.py
-examples/harness/harness
-examples/harness/harness_core.py
-examples/harness/harness_runtime.py
-examples/harness/identity_runtime.py
-examples/harness/loader_runtime.py
-examples/harness/migration/ENTRY_TEMPLATE.md
-examples/harness/migration/README.md
-examples/harness/migration/commits/0001-assembled-runtime-current-pcc1.md
-examples/harness/migration/upstream.json
-examples/harness/migration/validate_ledger.py
-examples/harness/model_runtime.py
-examples/harness/plugin_runtime.py
-examples/harness/session_persistence.py
-examples/harness/session_runtime.py
-examples/harness/settings_runtime.py
-examples/harness/source_provenance.py
-examples/harness/tests/conftest.py
-examples/harness/tests/test_agent_runtime.py
-examples/harness/tests/test_harness_runtime.py
-examples/harness/tests/test_loader_runtime.py
-examples/harness/tests/test_model_runtime.py
-examples/harness/tests/test_plugin_runtime.py
-examples/harness/tests/test_session_persistence.py
-examples/harness/tests/test_session_runtime.py
-examples/harness/tests/test_source_provenance.py
-examples/harness/tests/test_tool_runtime.py
-examples/harness/todo_plan_runtime.py
-examples/harness/tool_runtime.py
-examples/mac_diff_app/README.md
-examples/mac_diff_app/app.py
-examples/mac_diff_app/build.sh
-examples/mac_diff_app/declarative_app.py
-examples/mac_diff_app/declarative_headless.py
-examples/mac_diff_app/diff_core.py
-examples/mac_diff_app/kit_window
-examples/mac_diff_app/kit_window.py
-examples/mac_diff_app/kit_window_composition_tree.bak.py
-examples/mac_diff_app/pcc_gui_high.py
-examples/mac_diff_app/pcc_gui_kit.py
-examples/mac_diff_app/samples/case_a.txt
-examples/mac_diff_app/samples/case_b.txt
-examples/mac_diff_app/samples/left.txt
-examples/mac_diff_app/samples/right.txt
-pcc/py_runtime/gui_declarative_contract_v1.json
-pcc/py_runtime/py/pcc_gui_app.py
-pcc/py_runtime/py/pcc_gui_app_lifecycle.py
-pcc/py_runtime/py/pcc_gui_binding.py
-pcc/py_runtime/py/pcc_gui_cg.py
-pcc/py_runtime/py/pcc_gui_commands.py
-pcc/py_runtime/py/pcc_gui_components.py
-pcc/py_runtime/py/pcc_gui_controls.py
-pcc/py_runtime/py/pcc_gui_elements.py
-pcc/py_runtime/py/pcc_gui_events.py
-pcc/py_runtime/py/pcc_gui_image.py
-pcc/py_runtime/py/pcc_gui_kit.py
-pcc/py_runtime/py/pcc_gui_layout.py
-pcc/py_runtime/py/pcc_gui_scheduler.py
-pcc/py_runtime/py/pcc_gui_style.py
-pcc/py_runtime/py/pcc_gui_text.py
-pcc/py_runtime/py/pcc_gui_theme_anim.py
-pcc/py_runtime/py/pcc_gui_window.py
-tests/fixtures/contextual_pcc_gui_class_method_failure.py
-tests/python/test_mac_diff_app.py
-tests/python/test_mac_diff_app_declarative.py
-tests/python/test_pcc_gui_app_lifecycle.py
-tests/python/test_pcc_gui_app_lifecycle_darwin.py
-tests/python/test_pcc_gui_cg_runtime.py
-tests/python/test_pcc_gui_commands.py
-tests/python/test_pcc_gui_components.py
-tests/python/test_pcc_gui_current_pcc1.py
-tests/python/test_pcc_gui_events.py
-tests/python/test_pcc_gui_kit.py
-tests/python/test_pcc_gui_kit_darwin.py
-tests/python/test_pcc_gui_python.py
-tests/python/test_pcc_gui_scheduler.py
-tests/python/test_pcc_gui_style.py
-tests/python/test_pcc_gui_style_compiler.py
-tests/test_gui_declarative_design.py
+# path in this repository <- original path in allstoalls/pcc@2574f585
+docs/gui-declarative-absorption.md <- docs/design/gui-declarative-absorption.md
+examples/harness/AGENTS.md <- projects/harness/AGENTS.md
+examples/harness/ARCHITECTURE.md <- projects/harness/ARCHITECTURE.md
+examples/harness/README.md <- projects/harness/README.md
+examples/harness/TASKS.md <- projects/harness/TASKS.md
+examples/harness/agent_runtime.py <- projects/harness/agent_runtime.py
+examples/harness/app.py <- projects/harness/app.py
+examples/harness/bootstrap-pcc1.sh <- projects/harness/bootstrap-pcc1.sh
+examples/harness/build.sh <- projects/harness/build.sh
+examples/harness/credentials_runtime.py <- projects/harness/credentials_runtime.py
+examples/harness/gui/upstream-baseline.json <- projects/harness/gui/upstream-baseline.json
+examples/harness/gui_app.py <- projects/harness/gui_app.py
+examples/harness/gui_bridge.py <- projects/harness/gui_bridge.py
+examples/harness/gui_model.py <- projects/harness/gui_model.py
+examples/harness/harness <- projects/harness/harness
+examples/harness/harness_core.py <- projects/harness/harness_core.py
+examples/harness/harness_runtime.py <- projects/harness/harness_runtime.py
+examples/harness/identity_runtime.py <- projects/harness/identity_runtime.py
+examples/harness/loader_runtime.py <- projects/harness/loader_runtime.py
+examples/harness/migration/ENTRY_TEMPLATE.md <- projects/harness/migration/ENTRY_TEMPLATE.md
+examples/harness/migration/README.md <- projects/harness/migration/README.md
+examples/harness/migration/commits/0001-assembled-runtime-current-pcc1.md <- projects/harness/migration/commits/0001-assembled-runtime-current-pcc1.md
+examples/harness/migration/upstream.json <- projects/harness/migration/upstream.json
+examples/harness/migration/validate_ledger.py <- projects/harness/migration/validate_ledger.py
+examples/harness/model_runtime.py <- projects/harness/model_runtime.py
+examples/harness/plugin_runtime.py <- projects/harness/plugin_runtime.py
+examples/harness/session_persistence.py <- projects/harness/session_persistence.py
+examples/harness/session_runtime.py <- projects/harness/session_runtime.py
+examples/harness/settings_runtime.py <- projects/harness/settings_runtime.py
+examples/harness/source_provenance.py <- projects/harness/source_provenance.py
+examples/harness/tests/conftest.py <- projects/harness/tests/conftest.py
+examples/harness/tests/test_agent_runtime.py <- projects/harness/tests/test_agent_runtime.py
+examples/harness/tests/test_harness_runtime.py <- projects/harness/tests/test_harness_runtime.py
+examples/harness/tests/test_loader_runtime.py <- projects/harness/tests/test_loader_runtime.py
+examples/harness/tests/test_model_runtime.py <- projects/harness/tests/test_model_runtime.py
+examples/harness/tests/test_plugin_runtime.py <- projects/harness/tests/test_plugin_runtime.py
+examples/harness/tests/test_session_persistence.py <- projects/harness/tests/test_session_persistence.py
+examples/harness/tests/test_session_runtime.py <- projects/harness/tests/test_session_runtime.py
+examples/harness/tests/test_source_provenance.py <- projects/harness/tests/test_source_provenance.py
+examples/harness/tests/test_tool_runtime.py <- projects/harness/tests/test_tool_runtime.py
+examples/harness/todo_plan_runtime.py <- projects/harness/todo_plan_runtime.py
+examples/harness/tool_runtime.py <- projects/harness/tool_runtime.py
+examples/mac_diff_app/README.md <- projects/mac_diff_app/README.md
+examples/mac_diff_app/app.py <- projects/mac_diff_app/app.py
+examples/mac_diff_app/build.sh <- projects/mac_diff_app/build.sh
+examples/mac_diff_app/declarative_app.py <- projects/mac_diff_app/declarative_app.py
+examples/mac_diff_app/declarative_headless.py <- projects/mac_diff_app/declarative_headless.py
+examples/mac_diff_app/diff_core.py <- projects/mac_diff_app/diff_core.py
+examples/mac_diff_app/kit_window <- projects/mac_diff_app/kit_window
+examples/mac_diff_app/kit_window.py <- projects/mac_diff_app/kit_window.py
+examples/mac_diff_app/kit_window_composition_tree.bak.py <- projects/mac_diff_app/kit_window_composition_tree.bak.py
+examples/mac_diff_app/pcc_gui_high.py <- projects/mac_diff_app/pcc_gui_high.py
+examples/mac_diff_app/pcc_gui_kit.py <- projects/mac_diff_app/pcc_gui_kit.py
+examples/mac_diff_app/samples/case_a.txt <- projects/mac_diff_app/samples/case_a.txt
+examples/mac_diff_app/samples/case_b.txt <- projects/mac_diff_app/samples/case_b.txt
+examples/mac_diff_app/samples/left.txt <- projects/mac_diff_app/samples/left.txt
+examples/mac_diff_app/samples/right.txt <- projects/mac_diff_app/samples/right.txt
+pcc_gui/gui_declarative_contract_v1.json <- pcc/py_runtime/gui_declarative_contract_v1.json
+pcc_gui/pcc_gui_app.py <- pcc/py_runtime/py/pcc_gui_app.py
+pcc_gui/pcc_gui_app_lifecycle.py <- pcc/py_runtime/py/pcc_gui_app_lifecycle.py
+pcc_gui/pcc_gui_binding.py <- pcc/py_runtime/py/pcc_gui_binding.py
+pcc_gui/pcc_gui_cg.py <- pcc/py_runtime/py/pcc_gui_cg.py
+pcc_gui/pcc_gui_commands.py <- pcc/py_runtime/py/pcc_gui_commands.py
+pcc_gui/pcc_gui_components.py <- pcc/py_runtime/py/pcc_gui_components.py
+pcc_gui/pcc_gui_controls.py <- pcc/py_runtime/py/pcc_gui_controls.py
+pcc_gui/pcc_gui_elements.py <- pcc/py_runtime/py/pcc_gui_elements.py
+pcc_gui/pcc_gui_events.py <- pcc/py_runtime/py/pcc_gui_events.py
+pcc_gui/pcc_gui_image.py <- pcc/py_runtime/py/pcc_gui_image.py
+pcc_gui/pcc_gui_kit.py <- pcc/py_runtime/py/pcc_gui_kit.py
+pcc_gui/pcc_gui_layout.py <- pcc/py_runtime/py/pcc_gui_layout.py
+pcc_gui/pcc_gui_scheduler.py <- pcc/py_runtime/py/pcc_gui_scheduler.py
+pcc_gui/pcc_gui_style.py <- pcc/py_runtime/py/pcc_gui_style.py
+pcc_gui/pcc_gui_text.py <- pcc/py_runtime/py/pcc_gui_text.py
+pcc_gui/pcc_gui_theme_anim.py <- pcc/py_runtime/py/pcc_gui_theme_anim.py
+pcc_gui/pcc_gui_window.py <- pcc/py_runtime/py/pcc_gui_window.py
+tests/fixtures/contextual_pcc_gui_class_method_failure.py <- tests/fixtures/contextual_pcc_gui_class_method_failure.py
+tests/test_gui_declarative_design.py <- tests/test_gui_declarative_design.py
+tests/test_mac_diff_app.py <- tests/python/test_mac_diff_app.py
+tests/test_mac_diff_app_declarative.py <- tests/python/test_mac_diff_app_declarative.py
+tests/test_pcc_gui_app_lifecycle.py <- tests/python/test_pcc_gui_app_lifecycle.py
+tests/test_pcc_gui_app_lifecycle_darwin.py <- tests/python/test_pcc_gui_app_lifecycle_darwin.py
+tests/test_pcc_gui_cg_runtime.py <- tests/python/test_pcc_gui_cg_runtime.py
+tests/test_pcc_gui_commands.py <- tests/python/test_pcc_gui_commands.py
+tests/test_pcc_gui_components.py <- tests/python/test_pcc_gui_components.py
+tests/test_pcc_gui_current_pcc1.py <- tests/python/test_pcc_gui_current_pcc1.py
+tests/test_pcc_gui_events.py <- tests/python/test_pcc_gui_events.py
+tests/test_pcc_gui_kit.py <- tests/python/test_pcc_gui_kit.py
+tests/test_pcc_gui_kit_darwin.py <- tests/python/test_pcc_gui_kit_darwin.py
+tests/test_pcc_gui_python.py <- tests/python/test_pcc_gui_python.py
+tests/test_pcc_gui_scheduler.py <- tests/python/test_pcc_gui_scheduler.py
+tests/test_pcc_gui_style.py <- tests/python/test_pcc_gui_style.py
+tests/test_pcc_gui_style_compiler.py <- tests/python/test_pcc_gui_style_compiler.py

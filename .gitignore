@@ -1,0 +1,8 @@
+build/
+__pycache__/
+*.pyc
+.DS_Store
+examples/mac_diff_app/mac_diff_app
+examples/mac_diff_app/libpcc_gui_metal.dylib
+examples/mac_diff_app/pcc_gui_metal_render_bridge.m
+examples/harness/build/

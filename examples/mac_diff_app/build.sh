@@ -4,7 +4,10 @@
 set -e
 cd "$(dirname "$0")"
 APP_DIR="$(pwd)"
-REPO_ROOT="$(cd ../../ && pwd)"
+REPO_ROOT="${PCC_CORE:-$(cd ../../../pcc 2>/dev/null && pwd)}"
+if [ -z "$REPO_ROOT" ] || [ ! -d "$REPO_ROOT/pcc" ]; then
+  echo "set PCC_CORE=/path/to/allstoalls-pcc checkout" >&2; exit 1
+fi
 
 echo "[1/3] generate + compile Metal render bridge"
 cd "$APP_DIR"
@@ -29,6 +32,6 @@ fi
 echo "[3/3] compile the app"
 cd "$REPO_ROOT"
 "$PCC1" --backend self --python-libpython off --ir-scaffold on \
-        projects/mac_diff_app/app.py -o "$APP_DIR/mac_diff_app"
+        "$APP_DIR/app.py" -o "$APP_DIR/mac_diff_app"
 
 echo "built: $APP_DIR/mac_diff_app"
