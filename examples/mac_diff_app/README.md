@@ -47,6 +47,8 @@ uv run examples/mac_diff_app/build.sh
 - AppKit: `NSWindow`, menu bar, Dock activation, window close detection.
 - Metal: `CAMetalLayer` drawable, RGBA/BGRA pipeline, solid-color rects.
 - Text: `CATextLayer` per slot (512 slots), top-left coordinates.
+- Bridge addresses and buffers use explicit integer address types across
+  module calls, matching PCC application-module unsafe semantics.
 - Events: targeted component listeners plus typed application run events;
   native AppKit lifecycle reachability is covered by its dedicated bridge gate.
 

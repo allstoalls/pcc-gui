@@ -272,7 +272,7 @@ def pcc_gui_flow_arrange(children, out, count: int, line_width: int, h_spacing: 
         h: int = load_i64(child, 24)
         if x > left0 and x + w > left0 + line_width:
             x = left0
-            y += line_h
+            y += line_h + v_spacing
             line_h = 0
         store_i64(child, 0, x)
         store_i64(child, 8, y)

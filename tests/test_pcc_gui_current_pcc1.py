@@ -27,7 +27,7 @@ def test_kernel_strict_self_no_libpython(
     )
     source = tmp_path / "kernel_pcc1.py"
     source.write_text(
-        '''from pcc.unsafe import load_i64, stack_alloc
+        '''from pcc.unsafe import load_i64, ptr_to_int, stack_alloc
 import pcc_gui_kit as kit
 
 def main() -> int:
@@ -42,7 +42,7 @@ def main() -> int:
     if kit.pcc_kit_hit(root, 10, 10) != second:
         return 2
     path = stack_alloc(24)
-    if kit.pcc_kit_route_event_v2(root, 10, 10, 1, path, 3) != 2:
+    if kit.pcc_kit_route_event_v2(root, 10, 10, 1, ptr_to_int(path), 3) != 2:
         return 3
     if load_i64(path, 0) != second or load_i64(path, 8) != root:
         return 4

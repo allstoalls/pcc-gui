@@ -13,6 +13,8 @@ import pytest
 from pcc.kernel_ir.metal_render_surface import write_metal_render_bridge
 
 
+from gui_compiler import compiler_path
+
 REPO = Path(__file__).resolve().parents[1]
 
 
@@ -50,12 +52,14 @@ def test_module_command_list_reaches_real_bridge(
         shutil.copy(REPO / "examples" / "mac_diff_app" / module, tmp_path / module)
     source = tmp_path / "kit_real_bridge.py"
     source.write_text(
-        f'''from pcc.unsafe import calloc, cstr, load_i64, stack_alloc, store_i64
+        f'''from pcc.unsafe import calloc, cstr, load_i64, ptr_to_int, stack_alloc, store_i64
 import pcc_gui_high as gui
 import pcc_gui_kit as kit
 
 def main() -> int:
-    if gui.init(cstr("pcc kit bridge"), 64, 64, cstr({str(bridge)!r})) != 0:
+    init_rc = gui.init(ptr_to_int(cstr("pcc kit bridge")), 64, 64, ptr_to_int(cstr({str(bridge)!r})))
+    if init_rc != 0:
+        print("PCC_GUI_BRIDGE_INIT_FAILED", init_rc)
         return 11
     if kit.pcc_kit_init(4) != 0:
         return 12
@@ -73,8 +77,8 @@ def main() -> int:
     while attempt < 60 and ack != 0:
         store_i64(rn, 0, 0)
         store_i64(tn, 0, 0)
-        kit.pcc_kit_render(root, rects, colors, rn, texts, tn)
-        gui.render_scene(rects, colors, load_i64(rn, 0), texts, load_i64(tn, 0), 64, 64)
+        kit.pcc_kit_render(root, ptr_to_int(rects), ptr_to_int(colors), ptr_to_int(rn), ptr_to_int(texts), ptr_to_int(tn))
+        gui.render_scene(ptr_to_int(rects), ptr_to_int(colors), load_i64(rn, 0), ptr_to_int(texts), load_i64(tn, 0), 64, 64)
         ack = gui.render_ack()
         if ack != 0:
             gui.running()
@@ -94,9 +98,7 @@ main()
     env["PCC_RUNTIME_ARCHIVE"] = str(pcc_py_runtime_archive)
     built = subprocess.run(
         [
-            "uv",
-            "run",
-            "pcc",
+            str(compiler_path()),
             "--backend",
             "self",
             "--python-libpython=off",

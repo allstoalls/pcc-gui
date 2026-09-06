@@ -14,26 +14,31 @@ from pathlib import Path
 
 import pytest
 
+from gui_compiler import compiler_path
+
 REPO = Path(__file__).resolve().parents[1]
 
 
 def _compile_run(tmp_path: Path, name: str, source: str) -> int:
     src = tmp_path / f"{name}.py"
     exe = tmp_path / name
-    src.write_text(source, encoding="utf-8")
+    source = source.replace("\nmain()\n", '\nprint("PCC_GUI_RESULT", main())\n')
+    src.write_text("import pcc_gui\n" + source, encoding="utf-8")
     b = subprocess.run(
-        [str(REPO / ".venv" / "bin" / "pcc"), "--backend", "self",
+        [str(compiler_path()), "--backend", "self",
          "--python-libpython", "off", "--ir-scaffold", "on",
          str(src), "-o", str(exe)],
         capture_output=True, text=True, timeout=120,
     )
     assert b.returncode == 0, b.stdout + b.stderr
     r = subprocess.run([str(exe)], capture_output=True, text=True, timeout=30)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "PCC_GUI_RESULT 0" in r.stdout.splitlines(), r.stdout + r.stderr
     return r.returncode
 
 
 _STACK = """
-from pcc.extern import c_int64, c_ptr, c_void, c_int32, extern, c_rawptr
+from pcc.extern import c_int64, c_ptr, c_void, c_int32, extern
 from pcc.unsafe import cstr, load_i64, null, stack_alloc, store_i64
 
 pcc_gui_stack_measure = extern("pcc_gui_stack_measure", (c_ptr, c_ptr, c_int64, c_int32, c_int32), c_void)
@@ -52,6 +57,8 @@ def main() -> int:
     store_i64(children, 80, 50)
     store_i64(children, 88, 60)
     out = stack_alloc(32)
+    store_i64(out, 0, 0)
+    store_i64(out, 8, 0)
     pcc_gui_stack_measure(children, out, 3, 0, 5)
     if load_i64(out, 16) != 50:
         return 1
@@ -68,7 +75,7 @@ def main() -> int:
     if load_i64(out, 24) != 40:
         return 3
     pcc_gui_flow_arrange(flow, out, 4, 100, 5, 5)
-    if load_i64(flow, 2 * 32 + 8) != 20:
+    if load_i64(flow, 2 * 32 + 8) != 25:
         return 4
     return 0
 
@@ -78,14 +85,15 @@ main()
 
 _ELEMENTS_CONTROLS = """
 from pcc.extern import c_int64, c_ptr, c_int32, extern
-from pcc.unsafe import cstr, load_i32, load_i64, stack_alloc, store_i32, store_i64, store_ptr, null
+from pcc.unsafe import cstr, load_i32, load_i64, stack_alloc, store_i32, store_i64, store_ptr, null, ptr_to_int
 
 pcc_gui_element_init = extern("pcc_gui_element_init", (c_ptr, c_int32), c_int32)
 pcc_gui_element_type = extern("pcc_gui_element_type", (c_ptr,), c_int32)
 pcc_gui_element_set_color = extern("pcc_gui_element_set_color", (c_ptr, c_int32, c_int32, c_int32, c_int32), c_int32)
 pcc_gui_control_init = extern("pcc_gui_control_init", (c_ptr,), c_int32)
 pcc_gui_control_append_child = extern("pcc_gui_control_append_child", (c_ptr, c_ptr), c_int32)
-pcc_gui_control_hit_test = extern("pcc_gui_control_hit_test", (c_ptr, c_int64, c_int64), c_rawptr)
+# Compare the returned machine-word address, with no C-string conversion.
+pcc_gui_control_hit_test = extern("pcc_gui_control_hit_test", (c_ptr, c_int64, c_int64), c_int64)
 pcc_gui_control_set_focus = extern("pcc_gui_control_set_focus", (c_ptr, c_int32), c_int32)
 pcc_gui_control_focused = extern("pcc_gui_control_focused", (c_ptr,), c_int32)
 
@@ -117,7 +125,7 @@ def main() -> int:
     pcc_gui_control_append_child(root, c1)
     pcc_gui_control_append_child(c1, c2)
     hit = pcc_gui_control_hit_test(root, 25, 25)
-    if hit != c2:
+    if hit != ptr_to_int(c2):
         return 4
     pcc_gui_control_set_focus(c2, 1)
     if pcc_gui_control_focused(c2) != 1:
@@ -246,7 +254,7 @@ def test_gui_python_text(tmp_path: Path) -> None:
     assert _compile_run(tmp_path, "gui_text", _TEXT) == 0
 
 _TABLE_THEME_ANIM = """
-from pcc.extern import c_int64, c_ptr, c_int32, extern
+from pcc.extern import c_int64, c_ptr, c_int32, c_void, extern
 from pcc.unsafe import cstr, load_i64, stack_alloc, store_i64, store_i32
 
 pcc_gui_table_measure = extern("pcc_gui_table_measure", (c_ptr, c_ptr, c_ptr, c_int64, c_int64), c_void)
@@ -272,6 +280,8 @@ def main() -> int:
     store_i64(cells, 112, 5)
     store_i64(cells, 120, 5)
     out = stack_alloc(32)
+    store_i64(out, 0, 0)
+    store_i64(out, 8, 0)
     totals = stack_alloc(32)
     pcc_gui_table_measure(cells, out, totals, 2, 2)
     if load_i64(totals, 0) != 20:
@@ -283,7 +293,7 @@ def main() -> int:
     store_i64(out, 16, 45)
     store_i64(out, 24, 45)
     pcc_gui_table_arrange(cells, out, totals, 2, 2, 0, 0, 0, 0)
-    if load_i64(cells, 48 + 0) != 15:
+    if load_i64(cells, 32) != 15:
         return 4  # cell1 x = col0 width = 15
     # theme
     theme = stack_alloc(512)
@@ -310,12 +320,13 @@ main()
 
 _EVENT_ROUTING = """
 from pcc.extern import c_int64, c_ptr, c_int32, extern
-from pcc.unsafe import cstr, load_i64, stack_alloc, store_i32, store_i64
+from pcc.unsafe import cstr, load_i64, ptr_to_int, stack_alloc, store_i32, store_i64
 
 pcc_gui_control_init = extern("pcc_gui_control_init", (c_ptr,), c_int32)
 pcc_gui_control_append_child = extern("pcc_gui_control_append_child", (c_ptr, c_ptr), c_int32)
-pcc_gui_control_hit_test = extern("pcc_gui_control_hit_test", (c_ptr, c_int64, c_int64), c_rawptr)
-pcc_gui_control_route_event = extern("pcc_gui_control_route_event", (c_ptr, c_int32, c_int64, c_int64), c_int32)
+# Compare the returned machine-word address, with no C-string conversion.
+pcc_gui_control_hit_test = extern("pcc_gui_control_hit_test", (c_ptr, c_int64, c_int64), c_int64)
+pcc_gui_control_route_event = extern("pcc_gui_control_route_event", (c_ptr, c_int32, c_int64, c_int64), c_int64)
 
 
 def main() -> int:
@@ -338,12 +349,12 @@ def main() -> int:
     pcc_gui_control_append_child(root, c1)
     pcc_gui_control_append_child(c1, c2)
     hit = pcc_gui_control_hit_test(root, 25, 25)
-    if hit != c2:
+    if hit != ptr_to_int(c2):
         return 1
     # mark c2 as handler (state bit 2)
     store_i32(c2, 56, 2)
     handled = pcc_gui_control_route_event(c2, 2, 25, 25)
-    if handled != c2:
+    if handled != ptr_to_int(c2):
         return 2
     return 0
 
@@ -432,16 +443,14 @@ def main() -> int:
     if load_i64(header, 16) != 4:
         return 4
     # pixel (0,0) = (0,0,0,255); pixel (10,5) = (120,125,105,255)
-    def px(o: int) -> int:
-        return load_i8(pixels, o) & 0xFF
-    if px(0) != 0 or px(1) != 0 or px(2) != 0 or px(3) != 255:
+    if (load_i8(pixels, 0) & 0xFF) != 0 or (load_i8(pixels, 1) & 0xFF) != 0 or (load_i8(pixels, 2) & 0xFF) != 0 or (load_i8(pixels, 3) & 0xFF) != 255:
         return 5
     o = (5*{W} + 10)*4
-    if px(o) != 120 or px(o+1) != 125 or px(o+2) != 105 or px(o+3) != 255:
+    if (load_i8(pixels, o) & 0xFF) != 120 or (load_i8(pixels, o+1) & 0xFF) != 125 or (load_i8(pixels, o+2) & 0xFF) != 105 or (load_i8(pixels, o+3) & 0xFF) != 255:
         return 6
     # pixel (19,9) = (228,225,196,255)
     o2 = (9*{W} + 19)*4
-    if px(o2) != 228 or px(o2+1) != 225 or px(o2+2) != 196:
+    if (load_i8(pixels, o2) & 0xFF) != 228 or (load_i8(pixels, o2+1) & 0xFF) != 225 or (load_i8(pixels, o2+2) & 0xFF) != 196:
         return 7
     return 0
 
@@ -449,3 +458,115 @@ def main() -> int:
 main()
 """
     assert _compile_run(tmp_path, "gui_png", prog) == 0
+
+
+@pytest.mark.integration
+def test_gui_png_filters_color_types_split_chunks_and_bounds(tmp_path: Path) -> None:
+    """Check every supported color/filter pair against independently encoded pixels."""
+    import struct
+    import zlib
+
+    width, height = 3, 4
+
+    def chunk(kind, data):
+        return (struct.pack(">I", len(data)) + kind + data
+                + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
+
+    def png(color_type, filtered):
+        payload = zlib.compress(filtered)
+        pieces = [payload[:1], payload[1:len(payload) // 2], payload[len(payload) // 2:]]
+        return (b"\x89PNG\r\n\x1a\n"
+                + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, color_type, 0, 0, 0))
+                + b"".join(chunk(b"IDAT", part) for part in pieces)
+                + chunk(b"IEND", b""))
+
+    def predictor(kind, left, above, upper_left):
+        if kind == 1:
+            return left
+        if kind == 2:
+            return above
+        if kind == 3:
+            return (left + above) // 2
+        if kind == 4:
+            prediction = left + above - upper_left
+            return min((left, above, upper_left), key=lambda n: abs(prediction - n))
+        return 0
+
+    data = bytearray()
+    expected = bytearray()
+    checks = []
+    for color_type, channels in [(0, 1), (2, 3), (4, 2), (6, 4)]:
+        rows = [bytes((x * 77 + y * 99 + 128) % 256 for x in range(width * channels))
+                for y in range(height)]
+        rgba = bytearray()
+        for row in rows:
+            for x in range(width):
+                pixel = row[x * channels:(x + 1) * channels]
+                rgb = pixel[:3] if channels >= 3 else pixel[:1] * 3
+                alpha = pixel[-1] if channels in (2, 4) else 255
+                rgba.extend(rgb + bytes([alpha]))
+        for kind in range(5):
+            filtered = bytearray()
+            for y, row in enumerate(rows):
+                filtered.append(kind)
+                for x, value in enumerate(row):
+                    left = row[x - channels] if x >= channels else 0
+                    above = rows[y - 1][x] if y else 0
+                    upper_left = rows[y - 1][x - channels] if y and x >= channels else 0
+                    filtered.append((value - predictor(kind, left, above, upper_left)) & 255)
+            image = png(color_type, filtered)
+            offset, expected_offset = len(data), len(expected)
+            data.extend(image)
+            expected.extend(rgba)
+            checks.append(f"""
+    if decode(ptr_add(data, {offset}), {len(image)}, header, pixels, 48) != 0:
+        return 1
+    if load_i64(header, 0) != 3 or load_i64(header, 8) != 4 or load_i64(header, 16) != 4:
+        return 2
+    i = 0
+    while i < 48:
+        if load_i8(pixels, i) != load_i8(expected, {expected_offset} + i):
+            return 3
+        i += 1
+""")
+    # A complete PNG with invalid filter bytes must fail after inflation.
+    invalid = png(6, bytes([5]) + bytes(12) + (bytes([0]) + bytes(12)) * 3)
+    invalid_offset = len(data)
+    data.extend(invalid)
+    checks.append(f"""
+    if decode(ptr_add(data, {invalid_offset}), {len(invalid)}, header, pixels, 48) != -7:
+        return 4
+    if decode(data, 7, header, pixels, 48) != -1:
+        return 5
+    if decode(data, 20, header, pixels, 48) != -4:
+        return 6
+    store_i64(pixels, 0, 12345)
+    if decode(ptr_add(data, {invalid_offset}), {len(invalid)}, header, pixels, 47) != -6:
+        return 7
+    if load_i64(pixels, 0) != 12345 or load_i64(header, 24) != 48:
+        return 8
+""")
+
+    def words(raw):
+        return ", ".join(str(int.from_bytes(raw[i:i + 8].ljust(8, b"\0"), "little", signed=True))
+                         for i in range(0, len(raw), 8))
+
+    source = f'''
+from pcc.extern import c_ptr, c_int64, c_int32, extern
+from pcc.unsafe import define_global_i64_array, global_addr, load_i8, load_i64, ptr_add, stack_alloc, store_i64
+
+define_global_i64_array("png_matrix_data", {words(data)})
+define_global_i64_array("png_matrix_expected", {words(expected)})
+decode = extern("pcc_gui_png_decode", (c_ptr, c_int64, c_ptr, c_ptr, c_int64), c_int32)
+
+def main() -> int:
+    data = global_addr("png_matrix_data")
+    expected = global_addr("png_matrix_expected")
+    header = stack_alloc(32)
+    pixels = stack_alloc(48)
+{''.join(checks)}
+    return 0
+
+main()
+'''
+    assert _compile_run(tmp_path, "png_matrix", source) == 0

@@ -1,10 +1,18 @@
 # Design: absorbing declarative-UI concepts into the pcc GUI stack
 
-Status: reviewed, taskized, and declarative ABI v1 frozen. Production GUI
-implementation remains in the downstream task rows. The machine-readable
-authority is `pcc/py_runtime/gui_declarative_contract_v1.json`; the pinned,
-license-labeled upstream reference note is
-`docs/refs_docs/gui-declarative/README.md`.
+Status: the declarative ABI v1 is frozen in
+[`pcc_gui/gui_declarative_contract_v1.json`](../pcc_gui/gui_declarative_contract_v1.json).
+The framework now belongs to this standalone repository. Open acceptance work
+is tracked in [GitHub issues](https://github.com/allstoalls/pcc-gui/issues).
+Historical core paths below describe the design's original baseline.
+
+The canonical kernel is `pcc_gui/pcc_gui_kit.py`; `import pcc_gui` includes its
+implementation in the application's link. The example's `pcc_gui_kit.py` is a
+stateless compatibility module that imports that same package and forwards
+to its C ABI using explicit application address types. There is no
+GUI implementation in the core runtime archive. Kernel gates run from this
+checkout with `uv run pytest -q tests/test_pcc_gui_kit.py`; the real bridge gate
+is selected separately with `-m integration tests/test_pcc_gui_kit_darwin.py`.
 
 Review verdict: the direction is reasonable, but the original draft was not
 implementation-ready.  It overstated the current kernel, treated temporary
@@ -27,7 +35,7 @@ existing pcc GUI, **without a half-finished layer**.
 Every abstraction must have a working end-to-end path (component -> node ->
 render -> event -> state -> re-render) with tests.
 
-## What exists (the host)
+## Original design baseline (before implementation)
 
 The repository has a promising composition-tree kernel, but not yet one
 verified host:

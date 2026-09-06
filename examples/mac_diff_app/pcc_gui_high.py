@@ -58,6 +58,9 @@ pcc_gui_anim_value = extern("pcc_gui_anim_value", (c_ptr,), c_int64)
 pcc_gui_anim_done = extern("pcc_gui_anim_done", (c_ptr,), c_int32)
 pcc_platform_sleep_ns = extern("pcc_platform_sleep_ns", (c_int64,), c_int64)
 
+# Application-module unsafe addresses use the public integer address lane.
+# Keep that type explicit across module calls, including bridge buffers.
+
 # ---- module state ----
 # win@0 render@8 show@16 close@24 pump@32 closed@40 rects@48 colors@56
 # theme@64 anim@72 count@88 w@96 h@104 click@112 textfn@120 sizefn@128
@@ -76,13 +79,13 @@ def _setg(off: int, value: int) -> None:
     store_i64(global_addr("pcc_gui_high_state"), off, value)
 
 
-def _gp(off: int):
-    return int_to_ptr(_g(off))
+def _gp(off: int) -> int:
+    return _g(off)
 
 
-def init(title, w: int, h: int, dylib) -> int:
+def init(title: int, w: int, h: int, dylib: int) -> int:
     """Create the window + menu bar and dlopen the Metal bridge."""
-    hdl = dynamic_library_open(dylib)
+    hdl = dynamic_library_open(int_to_ptr(dylib))
     if ptr_is_null(hdl):
         return -1
     create = dynamic_library_symbol(hdl, cstr("pcc_gui_metal_window_create"))
@@ -101,7 +104,7 @@ def init(title, w: int, h: int, dylib) -> int:
     panel2fn = dynamic_library_symbol(hdl, cstr("pcc_gui_metal_open_panel2"))
     if ptr_is_null(create) or ptr_is_null(render) or ptr_is_null(pump):
         return -2
-    win = call_ptr_i64_i64(create, title, w, h)
+    win = call_ptr_i64_i64(create, int_to_ptr(title), w, h)
     if ptr_is_null(win):
         return -3
     _setg(0, ptr_to_int(win))
@@ -134,27 +137,27 @@ def init(title, w: int, h: int, dylib) -> int:
 
 # ---- theme / animation ----
 def theme(key: int, color: int) -> None:
-    pcc_gui_theme_set_color(_gp(64), key, color)
+    pcc_gui_theme_set_color(int_to_ptr(_gp(64)), key, color)
 
 
 def theme_get(key: int) -> int:
-    return pcc_gui_theme_get_color(_gp(64), key)
+    return pcc_gui_theme_get_color(int_to_ptr(_gp(64)), key)
 
 
 def anim_start(f: int, to: int, dur: int) -> None:
-    pcc_gui_anim_start(_gp(72), f, to, dur)
+    pcc_gui_anim_start(int_to_ptr(_gp(72)), f, to, dur)
 
 
 def anim_step(ms: int) -> None:
-    pcc_gui_anim_step(_gp(72), ms)
+    pcc_gui_anim_step(int_to_ptr(_gp(72)), ms)
 
 
 def anim_value() -> int:
-    return pcc_gui_anim_value(_gp(72))
+    return pcc_gui_anim_value(int_to_ptr(_gp(72)))
 
 
 def anim_done() -> int:
-    return pcc_gui_anim_done(_gp(72))
+    return pcc_gui_anim_done(int_to_ptr(_gp(72)))
 
 
 # ---- drawing ----
@@ -162,8 +165,8 @@ def _emit(x: int, y: int, w: int, h: int, color: int) -> None:
     n: int = _g(88)
     if n >= 64:
         return
-    r = _gp(48)
-    c = _gp(56)
+    r = int_to_ptr(_gp(48))
+    c = int_to_ptr(_gp(56))
     store_i64(r, n * 32 + 0, x)
     store_i64(r, n * 32 + 8, y)
     store_i64(r, n * 32 + 16, w)
@@ -196,13 +199,13 @@ def button(x: int, y: int, w: int, h: int, color: int) -> None:
     _emit(x, y + h - 2, w, 2, 0xFF909090)
 
 
-def text(slot: int, x: int, y: int, text_ptr: c_ptr, text_len: int,
+def text(slot: int, x: int, y: int, text_ptr: int, text_len: int,
          font: int, color: int) -> None:
     """Real glyph text (slot 0..511, top-left coords)."""
     text_hl(slot, x, y, text_ptr, text_len, font, color, 0, 0)
 
 
-def text_hl(slot: int, x: int, y: int, text_ptr: c_ptr, text_len: int,
+def text_hl(slot: int, x: int, y: int, text_ptr: int, text_len: int,
             font: int, color: int, other_ptr: int, other_len: int) -> None:
     """Like text(); when other_len > 0 the bridge diffs this line against the
     other side's bytes (other_ptr) and paints the differing span red."""
@@ -212,18 +215,18 @@ def text_hl(slot: int, x: int, y: int, text_ptr: c_ptr, text_len: int,
     store_i64(prm, 16, y)
     store_i64(prm, 24, other_ptr)
     store_i64(prm, 32, other_len)
-    call_i64_ptr3_i64_i64_i64(_gp(120), _gp(0), text_ptr, prm,
+    call_i64_ptr3_i64_i64_i64(int_to_ptr(_gp(120)), int_to_ptr(_gp(0)), int_to_ptr(text_ptr), prm,
                               text_len, font, color)
 
 
 # ---- input / window ----
-def poll_click(x_out, y_out) -> int:
+def poll_click(x_out: int, y_out: int) -> int:
     """1 + write the latest left-click (top-left) if any since last poll."""
-    return call_i64_ptr3(_gp(112), _gp(0), x_out, y_out)
+    return call_i64_ptr3(int_to_ptr(_gp(112)), int_to_ptr(_gp(0)), int_to_ptr(x_out), int_to_ptr(y_out))
 
 
-def window_size(w_out, h_out) -> int:
-    return call_i64_ptr3(_gp(128), _gp(0), w_out, h_out)
+def window_size(w_out: int, h_out: int) -> int:
+    return call_i64_ptr3(int_to_ptr(_gp(128)), int_to_ptr(_gp(0)), int_to_ptr(w_out), int_to_ptr(h_out))
 
 
 def resize(w: int, h: int) -> None:
@@ -234,11 +237,11 @@ def resize(w: int, h: int) -> None:
 
 def pane_focus(pane: int, line: int) -> None:
     """Select + scroll the pane's NSTextView to a display line (0-based)."""
-    call_ptr_i64_i64(_gp(160), _gp(0), pane, line)
+    call_ptr_i64_i64(int_to_ptr(_gp(160)), int_to_ptr(_gp(0)), pane, line)
 
 
 def pane_set(pane: int, x: int, y: int, w: int, h: int,
-             text_ptr: c_ptr, text_len: int, spec_ptr, nlines: int) -> int:
+             text_ptr: int, text_len: int, spec_ptr: int, nlines: int) -> int:
     """Set a whole diff pane as one selectable NSTextView.  spec_ptr: nlines
     records of 5 i64 {line_byte_start, line_byte_len, kind, red_start, red_len}."""
     prm = stack_alloc(48)
@@ -246,30 +249,30 @@ def pane_set(pane: int, x: int, y: int, w: int, h: int,
     store_i64(prm, 8, y)
     store_i64(prm, 16, w)
     store_i64(prm, 24, h)
-    store_i64(prm, 32, ptr_to_int(spec_ptr))
-    return call_i64_ptr3_i64_i64_i64(_gp(152), _gp(0), text_ptr, prm,
+    store_i64(prm, 32, ptr_to_int(int_to_ptr(spec_ptr)))
+    return call_i64_ptr3_i64_i64_i64(int_to_ptr(_gp(152)), int_to_ptr(_gp(0)), int_to_ptr(text_ptr), prm,
                                      text_len, nlines, pane)
 
 
-def capture(path) -> int:
+def capture(path: int) -> int:
     """Write the window content to a PNG (diagnostic)."""
-    return call_i64_ptr2(_gp(144), _gp(0), path)
+    return call_i64_ptr2(int_to_ptr(_gp(144)), int_to_ptr(_gp(0)), int_to_ptr(path))
 
 
-def open_panel(path_buf, cap: int) -> int:
+def open_panel(path_buf: int, cap: int) -> int:
     """NSOpenPanel: 0 = picked (path written), 1 = cancelled."""
-    return call_i64_ptr_i64(_gp(136), path_buf, cap)
+    return call_i64_ptr_i64(int_to_ptr(_gp(136)), int_to_ptr(path_buf), cap)
 
 
-def open_panel2(p1, p2) -> int:
+def open_panel2(p1: int, p2: int) -> int:
     """One multi-select NSOpenPanel: 0 = two files picked (p1,p2 written,
     512-byte bufs), 1 = cancelled / fewer than 2 chosen."""
-    return call_i64_ptr2(_gp(168), p1, p2)
+    return call_i64_ptr2(int_to_ptr(_gp(168)), int_to_ptr(p1), int_to_ptr(p2))
 
 
 def running() -> int:
-    call_i64_ptr1(_gp(32), null())
-    if call_i64_ptr1(_gp(40), _gp(0)) != 0:
+    call_i64_ptr1(int_to_ptr(_gp(32)), null())
+    if call_i64_ptr1(int_to_ptr(_gp(40)), int_to_ptr(_gp(0))) != 0:
         return 0
     return 1
 
@@ -278,15 +281,15 @@ def sleep(ms: int) -> None:
     pcc_platform_sleep_ns(ms * 1000000)
 
 
-def render_scene(rects, colors, count: int, texts, tcount: int,
+def render_scene(rects: int, colors: int, count: int, texts: int, tcount: int,
                  w: int, h: int) -> None:
     """Render a scene produced by the composition-tree kernel: rect
     commands via the Metal bridge, text commands via CATextLayer."""
     _setg(176, call_i64_ptr3_i64_i64_i64(
-        _gp(8), _gp(0), rects, colors, count, w, h))
+        int_to_ptr(_gp(8)), int_to_ptr(_gp(0)), int_to_ptr(rects), int_to_ptr(colors), count, w, h))
     i = 0
     while i < tcount:
-        tb = texts
+        tb = int_to_ptr(texts)
         x = load_i64(tb, i * 48 + 0)
         y = load_i64(tb, i * 48 + 8)
         ln = load_i64(tb, i * 48 + 16)
@@ -297,13 +300,13 @@ def render_scene(rects, colors, count: int, texts, tcount: int,
         store_i64(prm, 0, 500 + i)
         store_i64(prm, 8, x)
         store_i64(prm, 16, y)
-        call_i64_ptr3_i64_i64_i64(_gp(120), _gp(0), tp, prm, ln, font, color)
+        call_i64_ptr3_i64_i64_i64(int_to_ptr(_gp(120)), int_to_ptr(_gp(0)), tp, prm, ln, font, color)
         i = i + 1
 
 
 def present() -> None:
     _setg(184, call_i64_ptr3_i64_i64_i64(
-        _gp(8), _gp(0), _gp(48), _gp(56), _g(88), _g(96), _g(104)))
+        int_to_ptr(_gp(8)), int_to_ptr(_gp(0)), int_to_ptr(_gp(48)), int_to_ptr(_gp(56)), _g(88), _g(96), _g(104)))
     _setg(88, 0)
 
 
@@ -318,4 +321,4 @@ def present_ack() -> int:
 
 
 def close() -> None:
-    call_i64_ptr1(_gp(24), _gp(0))
+    call_i64_ptr1(int_to_ptr(_gp(24)), int_to_ptr(_gp(0)))

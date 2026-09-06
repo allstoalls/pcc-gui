@@ -25,6 +25,7 @@ from pcc.unsafe import (
     load_ptr,
     null,
     ptr_is_null,
+    ptr_to_int,
     store_i32,
     store_i64,
     store_ptr,
@@ -107,10 +108,10 @@ def pcc_gui_control_focused(control) -> int:
     return load_i32(control, 56) & 1
 
 
-@c_abi_typed_export("pcc_gui_control_route_event", "i32", ("ptr", "i32", "i64", "i64"))
+@c_abi_typed_export("pcc_gui_control_route_event", "i64", ("ptr", "i32", "i64", "i64"))
 def pcc_gui_control_route_event(control, event: int, x: int, y: int) -> int:
     """Route an event to the hit control (for pointer events) and its
-    ancestor chain.  Returns the control id (pointer value) that handled it,
+    ancestor chain.  Returns the 64-bit control id (pointer value) that handled it,
     or 0 if unhandled.  A control "handles" when its state bit 2 is set."""
     if ptr_is_null(control):
         return 0
@@ -118,6 +119,6 @@ def pcc_gui_control_route_event(control, event: int, x: int, y: int) -> int:
     while not ptr_is_null(current):
         state: int = load_i32(current, 56)
         if (state & 2) != 0:
-            return current
+            return ptr_to_int(current)
         current = load_ptr(current, 0)
     return 0

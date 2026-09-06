@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import ast
 import os
 import subprocess
 from pathlib import Path
 
+
+from gui_compiler import compiler_path
 
 REPO = Path(__file__).resolve().parents[1]
 RUNTIME_KIT = REPO / "pcc_gui" / "pcc_gui_kit.py"
@@ -22,15 +25,13 @@ def _compile_run(
 ) -> str:
     src = tmp_path / f"{name}.py"
     exe = tmp_path / name
-    src.write_text(source, encoding="utf-8")
+    src.write_text("import pcc_gui\n" + source, encoding="utf-8")
     env = dict(os.environ)
     env.pop("LC_ALL", None)
     env["PCC_RUNTIME_ARCHIVE"] = str(pcc_py_runtime_archive)
     built = subprocess.run(
         [
-            "uv",
-            "run",
-            "pcc",
+            str(compiler_path()),
             "--backend",
             "self",
             "--python-libpython=off",
@@ -58,31 +59,56 @@ def test_mac_diff_uses_one_canonical_runtime_kit_owner() -> None:
     wrapper = PROJECT_WRAPPER.read_text(encoding="utf-8")
     app = APP.read_text(encoding="utf-8")
     kit_window = KIT_WINDOW.read_text(encoding="utf-8")
-    makefile = (REPO / "pcc" / "py_runtime" / "Makefile").read_text(
-        encoding="utf-8"
-    )
+    package = (REPO / "pcc_gui" / "__init__.py").read_text(encoding="utf-8")
+    declarative = (APP.parent / "declarative_app.py").read_text(encoding="utf-8")
 
-    assert "pcc_gui_kit" in makefile.split("FREESTANDING_PY_MODULES =", 1)[1]
+    assert package.count("from . import pcc_gui_kit") == 1
+    assert "import pcc_gui" in wrapper
     assert "@c_abi_typed_export(\"pcc_kit_destroy_subtree\"" in runtime
     assert "@c_abi_typed_export(\"pcc_kit_route_event_v2\"" in runtime
     assert "@c_abi_typed_export(\"pcc_kit_hit_path_v1\"" in runtime
 
     assert "contains no tree implementation" in wrapper
-    assert "extern(\"pcc_kit_create\"" in wrapper
+    assert "_abi_pcc_kit_create = extern(" in wrapper
     assert "define_global_i64(" not in wrapper
     assert "calloc(" not in wrapper
-    assert "def pcc_kit_create(" not in wrapper
+    for node in ast.parse(wrapper).body:
+        if isinstance(node, ast.FunctionDef):
+            assert len(node.body) == 1
+            assert isinstance(node.body[0], (ast.Return, ast.Expr))
+            call = node.body[0].value
+            assert isinstance(call, ast.Call) and isinstance(call.func, ast.Name)
+            assert call.func.id.startswith("_abi_pcc_kit_")
+            forwarded = []
+            for arg in call.args:
+                if isinstance(arg, ast.Call):
+                    assert isinstance(arg.func, ast.Name) and arg.func.id == "int_to_ptr"
+                    assert len(arg.args) == 1
+                    arg = arg.args[0]
+                assert isinstance(arg, ast.Name)
+                forwarded.append(arg.id)
+            assert forwarded == [arg.arg for arg in node.args.args]
 
-    assert "import pcc_gui_kit as kit" in app
+    assert "import pcc_gui" in app
+    assert "from declarative_app import run_app" in app
     assert "def kit_create(" not in app
     assert "define_global_i64(\"kit_pool\"" not in app
-    assert "kit.pcc_kit_render(" in app
+    assert 'extern("pcc_kit_render"' in declarative
     assert "import pcc_gui_kit as kit" in kit_window
+
+
+def test_core_archive_does_not_supply_a_second_gui_owner(pcc_py_runtime_archive: Path) -> None:
+    members = subprocess.run(
+        ["ar", "t", str(pcc_py_runtime_archive)],
+        check=True, capture_output=True, text=True, timeout=30,
+    ).stdout.splitlines()
+    assert members
+    assert not any("pcc_gui" in member for member in members), members
 
 
 _MUTATION_PROGRAM = r'''
 from pcc.extern import c_abi_typed_export, c_int32, c_int64, c_ptr, c_void, extern
-from pcc.unsafe import define_global_i64_array, function_addr, global_addr, load_i64, stack_alloc, store_i64
+from pcc.unsafe import define_global_i64_array, function_addr, global_addr, load_i64, null, stack_alloc, store_i64
 
 init = extern("pcc_kit_init", (c_int64,), c_int32)
 create = extern("pcc_kit_create", (c_int64,), c_int64)
@@ -160,6 +186,31 @@ def main() -> int:
     handler(root, 1)
     if route_v2(root, 10, 10, 7, out, 3) != 2:
         return 17
+    set_hook(null())
+    cycle = 0
+    while cycle < 1000:
+        old = c
+        if destroy(c) != 1 or valid(old) != 0:
+            return 18
+        c = create(root)
+        leaf = create(c)
+        if c < 0 or leaf < 0 or c == old or live() != 4:
+            return 19
+        if create(root) != -1:
+            return 20
+        rect(c, 0, 0, 80, 80, 0xFF444444)
+        rect(leaf, 0, 0, 40, 40, 0xFF555555)
+        if reorder(root, c, b) != 0 or hit(root, 10, 10) != b:
+            return 21
+        if reorder(root, c, -1) != 0 or hit(root, 10, 10) != leaf:
+            return 22
+        if path(root, 10, 10, out, 3) != 3:
+            return 23
+        if load_i64(out, 0) != leaf or load_i64(out, 8) != c or load_i64(out, 16) != root:
+            return 24
+        if destroy(leaf) != 1 or live() != 3:
+            return 25
+        cycle = cycle + 1
     print("kit-mutation-ok")
     return 0
 
